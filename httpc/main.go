@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/g-harel/httpc"
 )
 
-var helpMsg = `
-httpc is a curl-like application but supports HTTP protocol only.
+var helpMsg = `httpc is a curl-like application but supports HTTP protocol only.
 Usage:
    httpc command [arguments]
 The commands are:
@@ -17,16 +17,14 @@ The commands are:
    help    prints this screen.
 Use "httpc help [command]" for more information about a command.`
 
-var helpGetMsg = `
-usage: httpc get [-v] [-h key:value] URL
+var helpGetMsg = `usage: httpc get [-v] [-h key:value] URL
 
 Get executes a HTTP GET request for a given URL.
 
    -v             Prints the detail of the response such as protocol, status, and headers.
    -h key:value   Associates headers to HTTP Request with the format 'key:value'.`
 
-var helpPostMsg = `
-usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
+var helpPostMsg = `usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
 
 Post executes a HTTP POST request for a given URL with inline data or from file.
 
@@ -37,53 +35,54 @@ Post executes a HTTP POST request for a given URL with inline data or from file.
 
 Either [-d] or [-f] can be used but not both.`
 
-func handleHelpMsg(msg string, clean bool) {
-	fmt.Println(msg + "\n")
-	if clean {
-		os.Exit(0)
-	}
-	os.Exit(1)
-}
-
 func main() {
 	args := NewArgs(os.Args[1:])
+	log := Logger{}
 
 	if args.Match([]string{"help", "get"}) {
-		handleHelpMsg(helpGetMsg, true)
+		log.Result(helpGetMsg)
 	}
 
 	if args.Match([]string{"help", "post"}) {
-		handleHelpMsg(helpPostMsg, true)
+		log.Result(helpPostMsg)
 	}
 
 	if args.Match([]string{"help"}) {
-		handleHelpMsg(helpMsg, true)
+		log.Result(helpMsg)
 	}
 
-	verbose := args.Bool("-v")
+	log.verbose = args.Bool("-v")
 
 	headers := httpc.Headers{}
 	for _, s := range args.MultiString("-h") {
-		headers.AddString(s)
+		split := strings.SplitN(s, ":", 2)
+		name := split[0]
+		value := ""
+		if len(split) > 1 {
+			value = split[1]
+		}
+		headers.AddPair(name, value)
 	}
 
 	if args.Match([]string{"get"}) {
-		if len(args.Unused()) != 1 {
-			handleHelpMsg(helpGetMsg, false)
+		u := args.Unused()
+		if len(u) != 1 {
+			log.Fatal(helpGetMsg)
 		}
-		fmt.Printf("get => %v\n", args.Unused())
-		return
+		res, err := httpc.Get(u[0], &headers, log.Message)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		log.Result(res)
 	}
 
 	if args.Match([]string{"post"}) {
 		if len(args.Unused()) != 1 {
-			handleHelpMsg(helpPostMsg, false)
+			log.Fatal(helpPostMsg)
 		}
 		fmt.Printf("post => %v\n", args.Unused())
 		return
 	}
 
-	fmt.Println(verbose, headers, args.Unused())
-
-	handleHelpMsg(helpMsg, false)
+	log.Fatal(helpMsg)
 }
