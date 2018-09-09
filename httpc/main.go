@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -42,11 +43,9 @@ func main() {
 	if args.Match([]string{"help", "get"}) {
 		log.Result(helpGetMsg)
 	}
-
 	if args.Match([]string{"help", "post"}) {
 		log.Result(helpPostMsg)
 	}
-
 	if args.Match([]string{"help"}) {
 		log.Result(helpMsg)
 	}
@@ -77,11 +76,27 @@ func main() {
 	}
 
 	if args.Match([]string{"post"}) {
-		if len(args.Unused()) != 1 {
+		data := args.String("-d")
+		file := args.String("-f")
+		if data != "" && file != "" {
 			log.Fatal(helpPostMsg)
 		}
-		fmt.Printf("post => %v\n", args.Unused())
-		return
+		if file != "" {
+			d, err := ioutil.ReadFile(file)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("Error: could not read file contents: %v", err))
+			}
+			data = string(d)
+		}
+		u := args.Unused()
+		if len(u) != 1 {
+			log.Fatal(helpPostMsg)
+		}
+		res, err := httpc.Post(u[0], &headers, data, log.Message)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		log.Result(res)
 	}
 
 	log.Fatal(helpMsg)

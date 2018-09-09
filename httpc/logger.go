@@ -25,6 +25,6 @@ func (l *Logger) Result(str string) {
 
 // Fatal prints the input string and exits with an error code.
 func (l *Logger) Fatal(str string) {
-	fmt.Println(str)
+	fmt.Fprintln(os.Stderr, str)
 	os.Exit(1)
 }
