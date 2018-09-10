@@ -7,6 +7,7 @@ http://aimanhanna.com/concordia/comp445/index.htm
 https://about.sourcegraph.com/go/gophercon-2018-implementing-a-network-protocol-in-go/
 
 todo
-- parsing ignores used args
+- parsing should always look at the start
+- use standard logger
 
  -->

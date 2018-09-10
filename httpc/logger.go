@@ -17,6 +17,14 @@ func (l *Logger) Message(str string) {
 	}
 }
 
+// Write implements "io.Writer" and respects the verbose option.
+func (l *Logger) Write(b []byte) (int, error) {
+	if l.verbose {
+		return fmt.Fprintf(os.Stdin, string(b))
+	}
+	return len(b), nil
+}
+
 // Result prints the input string and exits with no error.
 func (l *Logger) Result(str string) {
 	fmt.Println(str)

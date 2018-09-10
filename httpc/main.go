@@ -60,7 +60,7 @@ func main() {
 		if len(split) > 1 {
 			value = split[1]
 		}
-		headers.AddPair(name, value)
+		headers.Add(name, value)
 	}
 
 	if args.Match([]string{"get"}) {
@@ -68,11 +68,11 @@ func main() {
 		if len(u) != 1 {
 			log.Fatal(helpGetMsg)
 		}
-		res, err := httpc.Get(u[0], &headers, log.Message)
+		err := httpc.Get(u[0], &headers, &log, os.Stdout)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Result(res)
+		log.Result("")
 	}
 
 	if args.Match([]string{"post"}) {
