@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/g-harel/httpc"
 )
@@ -40,63 +39,95 @@ func main() {
 	args := NewArgs(os.Args[1:])
 	log := Logger{}
 
-	if args.Match([]string{"help", "get"}) {
-		log.Result(helpGetMsg)
-	}
-	if args.Match([]string{"help", "post"}) {
-		log.Result(helpPostMsg)
-	}
-	if args.Match([]string{"help"}) {
+	if args.Match("help") {
+		log.verbose = true
+		if args.Match("get") {
+			log.Result(helpGetMsg)
+		}
+		if args.Match("post") {
+			log.Result(helpPostMsg)
+		}
+		if _, ok := args.Next(); ok {
+			log.Message("Error: too many arguments")
+			log.Fatal(helpMsg)
+		}
 		log.Result(helpMsg)
 	}
 
-	log.verbose = args.Bool("-v")
-
-	headers := httpc.Headers{}
-	for _, s := range args.MultiString("-h") {
-		split := strings.SplitN(s, ":", 2)
-		name := split[0]
-		value := ""
-		if len(split) > 1 {
-			value = split[1]
+	if args.Match("get") {
+		log.verbose = args.Match("-v")
+		headers := httpc.Headers{}
+		for {
+			h, ok := args.MatchBefore("-h")
+			if !ok {
+				break
+			}
+			headers.Add(h)
 		}
-		headers.Add(name, value)
-	}
 
-	if args.Match([]string{"get"}) {
-		u := args.Unused()
-		if len(u) != 1 {
+		url, ok := args.Next()
+		if !ok {
+			log.Message("Error: missing url")
 			log.Fatal(helpGetMsg)
 		}
-		err := httpc.Get(u[0], &headers, &log, os.Stdout)
+		if _, ok := args.Next(); ok {
+			log.Message("Error: too many arguments")
+			log.Fatal(helpGetMsg)
+		}
+
+		err := httpc.Get(url, &headers, &log, os.Stdout)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Result("")
+		return
 	}
 
-	if args.Match([]string{"post"}) {
-		data := args.String("-d")
-		file := args.String("-f")
-		if data != "" && file != "" {
+	if args.Match("post") {
+		log.verbose = args.Match("-v")
+		headers := httpc.Headers{}
+		for {
+			h, ok := args.MatchBefore("-h")
+			if !ok {
+				break
+			}
+			headers.Add(h)
+		}
+
+		data := ""
+		d, dataOK := args.MatchBefore("-d")
+		if dataOK {
+			data = d
+		}
+
+		f, fileOK := args.MatchBefore("-f")
+		if fileOK && dataOK {
+			log.Message("Error: cannot use both '-d' and '-f' flags")
 			log.Fatal(helpPostMsg)
 		}
-		if file != "" {
-			d, err := ioutil.ReadFile(file)
+		if fileOK {
+			file, err := ioutil.ReadFile(f)
 			if err != nil {
 				log.Fatal(fmt.Sprintf("Error: could not read file contents: %v", err))
 			}
-			data = string(d)
+			data = string(file)
 		}
-		u := args.Unused()
-		if len(u) != 1 {
+
+		url, ok := args.Next()
+		if !ok {
+			log.Message("Error: missing url")
 			log.Fatal(helpPostMsg)
 		}
-		res, err := httpc.Post(u[0], &headers, data, log.Message)
+		if _, ok := args.Next(); ok {
+			log.Message("Error: too many arguments")
+			log.Fatal(helpPostMsg)
+		}
+
+		res, err := httpc.Post(url, &headers, data, log.Message)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 		log.Result(res)
+		return
 	}
 
 	log.Fatal(helpMsg)

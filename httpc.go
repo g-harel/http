@@ -19,7 +19,7 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 	if u.Scheme != "http" {
 		return fmt.Errorf("unknown protocol \"%v\" in \"%v\"", u.Scheme, u.String())
 	}
-	headers.Add("Host", u.Host)
+	headers.Add(fmt.Sprintf("Host: %v", u.Host))
 	if u.Port() == "" {
 		u.Host += ":80"
 	}
@@ -27,7 +27,7 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 		u.Path = "/"
 	}
 
-	headers.Add("User-Agent", "httpc")
+	headers.Add("User-Agent: httpc")
 
 	conn, err := net.Dial("tcp", u.Host)
 	if err != nil {

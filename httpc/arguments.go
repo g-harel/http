@@ -1,99 +1,51 @@
 package main
 
 // Arguments represents a list of arguments being parsed.
-type Arguments []*struct {
-	value string
-	used  bool
+type Arguments struct {
+	data []string
 }
 
 // NewArgs creates a list of args from a given string slice.
-func NewArgs(args []string) Arguments {
-	l := make(Arguments, len(args))
-	for i, arg := range args {
-		l[i] = &struct {
-			value string
-			used  bool
-		}{
-			value: arg,
-			used:  false,
-		}
+func NewArgs(args []string) *Arguments {
+	return &Arguments{
+		data: args,
 	}
-	return l
 }
 
-// Unused returns a list of all the unused args in the list.
-// The values are not processed or filtered beyond their used status.
-func (args Arguments) Unused() []string {
-	list := []string{}
-	for _, arg := range args {
-		if !arg.used {
-			list = append(list, arg.value)
-		}
+// Next returns the next argument. If there is none, the returned bool will be false.
+func (args *Arguments) Next() (string, bool) {
+	if len(args.data) == 0 {
+		return "", false
 	}
-	return list
+	r := args.data[0]
+	args.data = args.data[1:]
+	return r, true
 }
 
-// Match checks that the first arguments are equal to the input strings.
-// If an only if everything matches, the involved arguments are marked as used.
-func (args Arguments) Match(strs []string) bool {
-	if len(strs) > len(args) {
+// Match checks that the first argument is equal to the input strings.
+// The matched argument is removed from the slice.
+func (args *Arguments) Match(s string) bool {
+	if len(args.data) == 0 {
 		return false
 	}
-	for i, str := range strs {
-		if str != args[i].value {
-			return false
-		}
+	r := args.data[0] == s
+	if r {
+		args.data = args.data[1:]
 	}
-	for i := 0; i < len(strs); i++ {
-		args[i].used = true
-	}
-	return true
+	return r
 }
 
-// Bool checks if the given string is in the args.
-func (args Arguments) Bool(str string) bool {
-	for _, arg := range args {
-		if arg.value == str {
-			arg.used = true
-			return true
-		}
+// MatchBefore checks that the first arg is equal to the input string and returns the next arg.
+// Both the matched argument and the one following it are removed from the slice.
+// The returned boolean details whether the input string was matched.
+func (args *Arguments) MatchBefore(s string) (string, bool) {
+	if len(args.data) < 2 {
+		return "", false
 	}
-	return false
-}
-
-// String returns the arg immediately after the first instance of the given string.
-func (args Arguments) String(str string) string {
-	for i, arg := range args {
-		if arg.value != str {
-			continue
-		}
-		arg.used = true
-		if i+1 >= len(args) {
-			continue
-		}
-		data := args[i+1]
-		data.used = true
-		return data.value
+	if args.data[0] != s {
+		return "", false
 	}
-	return ""
-}
-
-// MultiString creates a slice of all the args preceeded by the given string.
-func (args Arguments) MultiString(str string) []string {
-	list := []string{}
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		if arg.value != str {
-			continue
-		}
-		arg.used = true
-		if i+1 >= len(args) {
-			continue
-		}
-		i++
-		data := args[i]
-		data.used = true
-		list = append(list, data.value)
-	}
-	return list
+	r := args.data[1]
+	args.data = args.data[2:]
+	return r, true
 }
