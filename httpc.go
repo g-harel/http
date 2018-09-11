@@ -7,9 +7,17 @@ import (
 	"net/url"
 )
 
-// Get makes an http GET request to the provided url.
-func Get(addr string, headers []string, log io.Writer, res io.Writer) error {
-	u, err := url.Parse(addr)
+// Request represents an HTTP request to be sent.
+type Request struct {
+	Verb    string
+	URL     string
+	Headers []string
+	Data    io.Reader
+}
+
+// HTTP executes an HTTP request.
+func HTTP(req *Request, log io.Writer, res io.Writer) error {
+	u, err := url.Parse(req.URL)
 	if err != nil {
 		return fmt.Errorf("could not parse given url: %v", err)
 	}
@@ -19,7 +27,6 @@ func Get(addr string, headers []string, log io.Writer, res io.Writer) error {
 	if u.Scheme != "http" {
 		return fmt.Errorf("unknown protocol \"%v\" in \"%v\"", u.Scheme, u.String())
 	}
-	headers = append(headers, "Host: "+u.Host)
 	if u.Port() == "" {
 		u.Host += ":80"
 	}
@@ -27,53 +34,48 @@ func Get(addr string, headers []string, log io.Writer, res io.Writer) error {
 		u.Path = "/"
 	}
 
-	headers = append(headers, "User-Agent: httpc")
-
 	conn, err := net.Dial("tcp", u.Host)
 	if err != nil {
 		return fmt.Errorf("could connect to host: %v", err)
 	}
 	defer conn.Close()
 
-	req := io.MultiWriter(conn, log)
+	w := io.MultiWriter(conn, log)
 
-	_, err = fmt.Fprintf(req, "GET %v HTTP/1.0\r\n", u.RequestURI())
+	_, err = fmt.Fprintf(w, "%v %v HTTP/1.0\r\n", req.Verb, u.RequestURI())
 	if err != nil {
 		return fmt.Errorf("could not write request line: %v", err)
 	}
 
-	for _, s := range headers {
-		_, err := fmt.Fprintf(req, "%v\r\n", s)
+	req.Headers = append([]string{"Host: " + u.Hostname()}, req.Headers...)
+	for _, s := range req.Headers {
+		_, err := fmt.Fprintf(w, "%v\r\n", s)
 		if err != nil {
 			return fmt.Errorf("could not write headers: %v", err)
 		}
 	}
 
-	_, err = fmt.Fprintf(req, "\r\n")
+	_, err = fmt.Fprintf(w, "\r\n")
 	if err != nil {
 		return fmt.Errorf("could not write newline: %v", err)
 	}
 
-	buf := make([]byte, 256)
-	for {
-		n, err := conn.Read(buf)
-		if err == nil {
-			fmt.Fprint(res, string(buf[:n]))
-			continue
+	if req.Data != nil {
+		_, err := io.Copy(w, req.Data)
+		if err != nil {
+			return fmt.Errorf("error writing data: %v", err)
 		}
-		if err == io.EOF {
-			fmt.Fprint(res, string(buf[:n]))
-			break
+
+		_, err = fmt.Fprintf(w, "\r\n\r\n")
+		if err != nil {
+			return fmt.Errorf("could not write newline: %v", err)
 		}
+	}
+
+	_, err = io.Copy(res, conn)
+	if err != nil {
 		return fmt.Errorf("error reading response: %v", err)
 	}
 
-	return nil
-}
-
-// Post makes an http POST request to the provided url.
-func Post(url string, headers []string, data string, log io.Writer, res io.Writer) error {
-	fmt.Fprintln(log, "post "+url)
-	fmt.Fprintln(log, "data "+data)
 	return nil
 }

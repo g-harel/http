@@ -18,7 +18,7 @@ const (
 	errUnknownCmd  = "unknown command\n"
 	errTooManyArgs = "too many arguments\n"
 	errMissingURL  = "missing url\n"
-	errDataAndFile = "cannot use both\"" + flagData + "\" and \"" + flagFile + "\"\n"
+	errDataAndFile = "cannot use both \"" + flagData + "\" and \"" + flagFile + "\"\n"
 	errBadFile     = "could not read file contents"
 )
 

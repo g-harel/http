@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/g-harel/httpc"
 )
@@ -36,7 +37,14 @@ func get(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgGet)
 	}
 
-	err := httpc.Get(url, h, log, os.Stdout)
+	req := &httpc.Request{
+		Verb:    "GET",
+		URL:     url,
+		Headers: h,
+		Data:    nil,
+	}
+
+	err := httpc.HTTP(req, log, os.Stdout)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -46,22 +54,23 @@ func post(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
 	h := readHeaders(args)
 
-	data := ""
-	d, dataOK := args.MatchBefore(flagData)
-	if dataOK {
-		data = d
+	var data io.Reader
+	d, ok := args.MatchBefore(flagData)
+	if ok {
+		data = strings.NewReader(d)
 	}
 
-	f, fileOK := args.MatchBefore(flagFile)
-	if fileOK && dataOK {
+	f, ok := args.MatchBefore(flagFile)
+	if data != nil && ok {
 		log.Fatal(errDataAndFile, msgPost)
 	}
-	if fileOK {
-		file, err := ioutil.ReadFile(f)
+	if ok {
+		f, err := os.Open(f)
 		if err != nil {
 			log.Fatal(fmt.Sprintf("%v: %v", errBadFile, err))
 		}
-		data = string(file)
+		defer f.Close()
+		data = f
 	}
 
 	url, ok := args.Next()
@@ -72,7 +81,14 @@ func post(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgPost)
 	}
 
-	err := httpc.Post(url, h, data, log, os.Stdout)
+	req := &httpc.Request{
+		Verb:    "POST",
+		URL:     url,
+		Headers: h,
+		Data:    data,
+	}
+
+	err := httpc.HTTP(req, log, os.Stdout)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
