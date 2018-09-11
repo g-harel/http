@@ -8,7 +8,7 @@ import (
 )
 
 // Get makes an http GET request to the provided url.
-func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
+func Get(addr string, headers []string, log io.Writer, res io.Writer) error {
 	u, err := url.Parse(addr)
 	if err != nil {
 		return fmt.Errorf("could not parse given url: %v", err)
@@ -19,7 +19,7 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 	if u.Scheme != "http" {
 		return fmt.Errorf("unknown protocol \"%v\" in \"%v\"", u.Scheme, u.String())
 	}
-	headers.Add(fmt.Sprintf("Host: %v", u.Host))
+	headers = append(headers, "Host: "+u.Host)
 	if u.Port() == "" {
 		u.Host += ":80"
 	}
@@ -27,7 +27,7 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 		u.Path = "/"
 	}
 
-	headers.Add("User-Agent: httpc")
+	headers = append(headers, "User-Agent: httpc")
 
 	conn, err := net.Dial("tcp", u.Host)
 	if err != nil {
@@ -42,9 +42,11 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 		return fmt.Errorf("could not write request line: %v", err)
 	}
 
-	err = headers.Fprint(req)
-	if err != nil {
-		return fmt.Errorf("could not write headers: %v", err)
+	for _, s := range headers {
+		_, err := fmt.Fprintf(req, "%v\r\n", s)
+		if err != nil {
+			return fmt.Errorf("could not write headers: %v", err)
+		}
 	}
 
 	_, err = fmt.Fprintf(req, "\r\n")
@@ -70,8 +72,8 @@ func Get(addr string, headers *Headers, log io.Writer, res io.Writer) error {
 }
 
 // Post makes an http POST request to the provided url.
-func Post(url string, headers *Headers, data string, log func(string)) (string, error) {
-	log("post " + url)
-	log("data " + data)
-	return "", nil
+func Post(url string, headers []string, data string, log io.Writer, res io.Writer) error {
+	fmt.Fprintln(log, "post "+url)
+	fmt.Fprintln(log, "data "+data)
+	return nil
 }

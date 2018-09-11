@@ -10,29 +10,26 @@ type Logger struct {
 	verbose bool
 }
 
-// Message only prints the input string if the logger is verbose.
-func (l *Logger) Message(str string) {
-	if l.verbose {
-		fmt.Println(str)
-	}
-}
-
-// Write implements "io.Writer" and respects the verbose option.
+// Write implements "io.Writer" while respecting the verbose option.
+// Output is colored grey.
 func (l *Logger) Write(b []byte) (int, error) {
 	if l.verbose {
-		return fmt.Fprintf(os.Stdin, string(b))
+		n, err := fmt.Printf("\033[2m%v\033[0m", string(b))
+		return n - 8, err
 	}
 	return len(b), nil
 }
 
-// Result prints the input string and exits with no error.
-func (l *Logger) Result(str string) {
+// Print prints the input string.
+func (l *Logger) Print(str string) {
 	fmt.Println(str)
-	os.Exit(0)
 }
 
 // Fatal prints the input string and exits with an error code.
-func (l *Logger) Fatal(str string) {
-	fmt.Fprintln(os.Stderr, str)
+// Output is colored red.
+func (l *Logger) Fatal(strs ...string) {
+	for _, str := range strs {
+		fmt.Printf("\033[31;1m%v\033[0m\n", str)
+	}
 	os.Exit(1)
 }

@@ -8,7 +8,23 @@ import (
 	"github.com/g-harel/httpc"
 )
 
-var helpMsg = `httpc is a curl-like application but supports HTTP protocol only.
+var cmdHelp = "help"
+var cmdGet = "get"
+var cmdPost = "post"
+
+var flagVerbose = "-v"
+var flagHeader = "-h"
+var flagData = "-d"
+var flagFile = "-f"
+
+var errMissingCmd = "No Command Specified\n"
+var errUnknownCmd = "Unknown Command\n"
+var errTooManyArgs = "Too Many Arguments\n"
+var errMissingURL = "Missing URL\n"
+var errDataAndFile = "Cannot Use Both\"-d\" and \"-f\"\n"
+var errBadFile = "Could Not Read File Contents"
+
+var msgHelp = `httpc is a curl-like application but supports HTTP protocol only.
 Usage:
    httpc command [arguments]
 The commands are:
@@ -17,14 +33,14 @@ The commands are:
    help    prints this screen.
 Use "httpc help [command]" for more information about a command.`
 
-var helpGetMsg = `usage: httpc get [-v] [-h key:value] URL
+var msgGet = `usage: httpc get [-v] [-h key:value] URL
 
 Get executes a HTTP GET request for a given URL.
 
    -v             Prints the detail of the response such as protocol, status, and headers.
    -h key:value   Associates headers to HTTP Request with the format 'key:value'.`
 
-var helpPostMsg = `usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
+var msgPost = `usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
 
 Post executes a HTTP POST request for a given URL with inline data or from file.
 
@@ -35,100 +51,103 @@ Post executes a HTTP POST request for a given URL with inline data or from file.
 
 Either [-d] or [-f] can be used but not both.`
 
+func readHeaders(args *Arguments) []string {
+	headers := []string{}
+	for {
+		h, ok := args.MatchBefore(flagHeader)
+		if !ok {
+			break
+		}
+		headers = append(headers, h)
+	}
+	return headers
+}
+
+func help(args *Arguments, log *Logger) {
+	log.verbose = true
+	if args.Match(cmdGet) {
+		log.Print(msgGet)
+	}
+	if args.Match(cmdPost) {
+		log.Print(msgPost)
+	}
+	if _, ok := args.Next(); ok {
+		log.Fatal(errTooManyArgs, msgHelp)
+	}
+	log.Print(msgHelp)
+}
+
+func get(args *Arguments, log *Logger) {
+	log.verbose = args.Match(flagVerbose)
+	h := readHeaders(args)
+
+	url, ok := args.Next()
+	if !ok {
+		log.Fatal(errMissingURL, msgGet)
+	}
+	if _, ok := args.Next(); ok {
+		log.Fatal(errTooManyArgs, msgGet)
+	}
+
+	err := httpc.Get(url, h, log, os.Stdout)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
+func post(args *Arguments, log *Logger) {
+	log.verbose = args.Match(flagVerbose)
+	h := readHeaders(args)
+
+	data := ""
+	d, dataOK := args.MatchBefore(flagData)
+	if dataOK {
+		data = d
+	}
+
+	f, fileOK := args.MatchBefore(flagFile)
+	if fileOK && dataOK {
+		log.Fatal(errDataAndFile, msgPost)
+	}
+	if fileOK {
+		file, err := ioutil.ReadFile(f)
+		if err != nil {
+			log.Fatal(fmt.Sprintf("%v: %v", errBadFile, err))
+		}
+		data = string(file)
+	}
+
+	url, ok := args.Next()
+	if !ok {
+		log.Fatal(errMissingURL, msgPost)
+	}
+	if _, ok := args.Next(); ok {
+		log.Fatal(errTooManyArgs, msgPost)
+	}
+
+	err := httpc.Post(url, h, data, log, os.Stdout)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
 func main() {
 	args := NewArgs(os.Args[1:])
-	log := Logger{}
+	log := &Logger{}
 
-	if args.Match("help") {
-		log.verbose = true
-		if args.Match("get") {
-			log.Result(helpGetMsg)
-		}
-		if args.Match("post") {
-			log.Result(helpPostMsg)
-		}
-		if _, ok := args.Next(); ok {
-			log.Message("Error: too many arguments")
-			log.Fatal(helpMsg)
-		}
-		log.Result(helpMsg)
+	cmd, ok := args.Next()
+	if !ok {
+		log.Fatal(errMissingCmd, msgHelp)
 	}
 
-	if args.Match("get") {
-		log.verbose = args.Match("-v")
-		headers := httpc.Headers{}
-		for {
-			h, ok := args.MatchBefore("-h")
-			if !ok {
-				break
-			}
-			headers.Add(h)
-		}
-
-		url, ok := args.Next()
-		if !ok {
-			log.Message("Error: missing url")
-			log.Fatal(helpGetMsg)
-		}
-		if _, ok := args.Next(); ok {
-			log.Message("Error: too many arguments")
-			log.Fatal(helpGetMsg)
-		}
-
-		err := httpc.Get(url, &headers, &log, os.Stdout)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		return
+	switch cmd {
+	case cmdHelp:
+		help(args, log)
+	case cmdGet:
+		get(args, log)
+	case cmdPost:
+		post(args, log)
+	default:
+		log.Fatal(errUnknownCmd, msgHelp)
 	}
-
-	if args.Match("post") {
-		log.verbose = args.Match("-v")
-		headers := httpc.Headers{}
-		for {
-			h, ok := args.MatchBefore("-h")
-			if !ok {
-				break
-			}
-			headers.Add(h)
-		}
-
-		data := ""
-		d, dataOK := args.MatchBefore("-d")
-		if dataOK {
-			data = d
-		}
-
-		f, fileOK := args.MatchBefore("-f")
-		if fileOK && dataOK {
-			log.Message("Error: cannot use both '-d' and '-f' flags")
-			log.Fatal(helpPostMsg)
-		}
-		if fileOK {
-			file, err := ioutil.ReadFile(f)
-			if err != nil {
-				log.Fatal(fmt.Sprintf("Error: could not read file contents: %v", err))
-			}
-			data = string(file)
-		}
-
-		url, ok := args.Next()
-		if !ok {
-			log.Message("Error: missing url")
-			log.Fatal(helpPostMsg)
-		}
-		if _, ok := args.Next(); ok {
-			log.Message("Error: too many arguments")
-			log.Fatal(helpPostMsg)
-		}
-
-		res, err := httpc.Post(url, &headers, data, log.Message)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		log.Result(res)
-		return
-	}
-
-	log.Fatal(helpMsg)
 }
