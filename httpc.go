@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"strconv"
 )
 
 // Request represents an HTTP request to be sent.
@@ -13,6 +14,8 @@ type Request struct {
 	URL     string
 	Headers []string
 	Data    io.Reader
+	Len     int
+	Type    string
 }
 
 // HTTP executes an HTTP request.
@@ -48,6 +51,12 @@ func HTTP(req *Request, log io.Writer, res io.Writer) error {
 	}
 
 	req.Headers = append([]string{"Host: " + u.Hostname()}, req.Headers...)
+	if req.Data != nil {
+		req.Headers = append(req.Headers, "Content-Length: "+strconv.Itoa(req.Len))
+		if req.Type != "" {
+			req.Headers = append(req.Headers, "Content-Type: "+req.Type)
+		}
+	}
 	for _, s := range req.Headers {
 		_, err := fmt.Fprintf(w, "%v\r\n", s)
 		if err != nil {
@@ -63,19 +72,20 @@ func HTTP(req *Request, log io.Writer, res io.Writer) error {
 	if req.Data != nil {
 		_, err := io.Copy(w, req.Data)
 		if err != nil {
-			return fmt.Errorf("error writing data: %v", err)
+			return fmt.Errorf("could not write data: %v", err)
 		}
 
-		_, err = fmt.Fprintf(w, "\r\n\r\n")
-		if err != nil {
-			return fmt.Errorf("could not write newline: %v", err)
-		}
+		// Formatting errors are not critical.
+		fmt.Fprintf(log, "\n\n")
 	}
 
 	_, err = io.Copy(res, conn)
 	if err != nil {
 		return fmt.Errorf("error reading response: %v", err)
 	}
+
+	// Formatting errors are not critical.
+	fmt.Fprintf(log, "\n")
 
 	return nil
 }

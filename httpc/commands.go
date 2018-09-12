@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"mime"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/g-harel/httpc"
@@ -27,21 +28,21 @@ func help(args *Arguments, log *Logger) {
 
 func get(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
-	h := readHeaders(args)
 
-	url, ok := args.Next()
+	req := &httpc.Request{
+		Verb:    "GET",
+		URL:     "",
+		Headers: readHeaders(args),
+		Data:    nil,
+	}
+
+	var ok bool
+	req.URL, ok = args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgGet)
 	}
 	if _, ok := args.Next(); ok {
 		log.Fatal(errTooManyArgs, msgGet)
-	}
-
-	req := &httpc.Request{
-		Verb:    "GET",
-		URL:     url,
-		Headers: h,
-		Data:    nil,
 	}
 
 	err := httpc.HTTP(req, log, os.Stdout)
@@ -52,40 +53,49 @@ func get(args *Arguments, log *Logger) {
 
 func post(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
-	h := readHeaders(args)
 
-	var data io.Reader
+	req := &httpc.Request{
+		Verb:    "POST",
+		URL:     "",
+		Headers: readHeaders(args),
+		Data:    nil,
+		Len:     0,
+		Type:    "",
+	}
+
 	d, ok := args.MatchBefore(flagData)
 	if ok {
-		data = strings.NewReader(d)
+		req.Data = strings.NewReader(d)
+		req.Len = len(d)
+		req.Type = mime.TypeByExtension(".txt")
 	}
 
 	f, ok := args.MatchBefore(flagFile)
-	if data != nil && ok {
+	if req.Data != nil && ok {
 		log.Fatal(errDataAndFile, msgPost)
 	}
 	if ok {
-		f, err := os.Open(f)
+		file, err := os.Open(f)
 		if err != nil {
 			log.Fatal(fmt.Sprintf("%v: %v", errBadFile, err))
 		}
-		defer f.Close()
-		data = f
+		s, err := file.Stat()
+		if err != nil {
+			log.Fatal(fmt.Sprintf("%v: %v", errBadFile, err))
+		}
+		defer file.Close()
+
+		req.Data = file
+		req.Len = int(s.Size())
+		req.Type = mime.TypeByExtension(filepath.Ext(f))
 	}
 
-	url, ok := args.Next()
+	req.URL, ok = args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgPost)
 	}
 	if _, ok := args.Next(); ok {
 		log.Fatal(errTooManyArgs, msgPost)
-	}
-
-	req := &httpc.Request{
-		Verb:    "POST",
-		URL:     url,
-		Headers: h,
-		Data:    data,
 	}
 
 	err := httpc.HTTP(req, log, os.Stdout)
