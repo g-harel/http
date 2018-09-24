@@ -32,7 +32,7 @@ func get(args *Arguments, log *Logger) {
 	req := &httpc.Request{
 		Verb:    "GET",
 		URL:     "",
-		Headers: readHeaders(args),
+		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
 		Data:    nil,
 	}
 
@@ -57,7 +57,7 @@ func post(args *Arguments, log *Logger) {
 	req := &httpc.Request{
 		Verb:    "POST",
 		URL:     "",
-		Headers: readHeaders(args),
+		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
 		Data:    nil,
 		Len:     0,
 		Type:    "",

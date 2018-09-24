@@ -12,7 +12,7 @@ import (
 type Request struct {
 	Verb    string
 	URL     string
-	Headers []string
+	Headers *Headers
 	Data    io.Reader
 	Len     int
 	Type    string
@@ -50,18 +50,19 @@ func HTTP(req *Request, log io.Writer, res io.Writer) error {
 		return fmt.Errorf("could not write request line: %v", err)
 	}
 
-	req.Headers = append([]string{"Host: " + u.Hostname()}, req.Headers...)
+	h := &Headers{}
+	h.Add("Host", u.Hostname())
 	if req.Data != nil {
-		req.Headers = append(req.Headers, "Content-Length: "+strconv.Itoa(req.Len))
+		h.Add("Content-Length", strconv.Itoa(req.Len))
 		if req.Type != "" {
-			req.Headers = append(req.Headers, "Content-Type: "+req.Type)
+			h.Add("Content-Type", req.Type)
 		}
 	}
-	for _, s := range req.Headers {
-		_, err := fmt.Fprintf(w, "%v\r\n", s)
-		if err != nil {
-			return fmt.Errorf("could not write headers: %v", err)
-		}
+	h.AddCopy(req.Headers)
+
+	err = h.Fprint(w)
+	if err != nil {
+		return fmt.Errorf("could not write headers: %v", err)
 	}
 
 	_, err = fmt.Fprintf(w, "\r\n")

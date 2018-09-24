@@ -10,6 +10,5 @@ https://about.sourcegraph.com/go/gophercon-2018-implementing-a-network-protocol-
 
 todo
 - parse response to only print outputs
-- de-duplicate headers
 
  -->
