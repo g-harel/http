@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"net/url"
-	"strconv"
 )
 
 // Request represents an HTTP request to be sent.
@@ -13,9 +12,14 @@ type Request struct {
 	Verb    string
 	URL     string
 	Headers *Headers
-	Data    io.Reader
-	Len     int
-	Type    string
+	Body    io.Reader
+}
+
+// Response represents a received HTTP response.
+type Response struct {
+	StatusCode int
+	Headers    *Headers
+	Body       io.Reader
 }
 
 // HTTP executes an HTTP request.
@@ -50,15 +54,11 @@ func HTTP(req *Request, log io.Writer, res io.Writer) error {
 		return fmt.Errorf("could not write request line: %v", err)
 	}
 
+	// Headers are copied from input.
+	// Host header's value is replaced with the value from the url.
 	h := &Headers{}
-	h.Add("Host", u.Hostname())
-	if req.Data != nil {
-		h.Add("Content-Length", strconv.Itoa(req.Len))
-		if req.Type != "" {
-			h.Add("Content-Type", req.Type)
-		}
-	}
 	h.AddCopy(req.Headers)
+	h.Add("Host", u.Hostname())
 
 	err = h.Fprint(w)
 	if err != nil {
@@ -70,8 +70,8 @@ func HTTP(req *Request, log io.Writer, res io.Writer) error {
 		return fmt.Errorf("could not write newline: %v", err)
 	}
 
-	if req.Data != nil {
-		_, err := io.Copy(w, req.Data)
+	if req.Body != nil {
+		_, err := io.Copy(w, req.Body)
 		if err != nil {
 			return fmt.Errorf("could not write data: %v", err)
 		}

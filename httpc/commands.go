@@ -5,6 +5,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/g-harel/httpc"
@@ -33,7 +34,7 @@ func get(args *Arguments, log *Logger) {
 		Verb:    "GET",
 		URL:     "",
 		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
-		Data:    nil,
+		Body:    nil,
 	}
 
 	var ok bool
@@ -54,24 +55,25 @@ func get(args *Arguments, log *Logger) {
 func post(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
 
+	headers := &httpc.Headers{}
+	headers.AddRaw(readHeaders(args)...)
+
 	req := &httpc.Request{
 		Verb:    "POST",
 		URL:     "",
-		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
-		Data:    nil,
-		Len:     0,
-		Type:    "",
+		Headers: headers,
+		Body:    nil,
 	}
 
 	d, ok := args.MatchBefore(flagData)
 	if ok {
-		req.Data = strings.NewReader(d)
-		req.Len = len(d)
-		req.Type = mime.TypeByExtension(".txt")
+		req.Body = strings.NewReader(d)
+		headers.Add("Content-Length", strconv.Itoa(len(d)))
+		headers.Add("Content-Type", mime.TypeByExtension(".txt"))
 	}
 
 	f, ok := args.MatchBefore(flagFile)
-	if req.Data != nil && ok {
+	if req.Body != nil && ok {
 		log.Fatal(errDataAndFile, msgPost)
 	}
 	if ok {
@@ -85,9 +87,9 @@ func post(args *Arguments, log *Logger) {
 		}
 		defer file.Close()
 
-		req.Data = file
-		req.Len = int(s.Size())
-		req.Type = mime.TypeByExtension(filepath.Ext(f))
+		req.Body = file
+		headers.Add("Content-Length", strconv.Itoa(int(s.Size())))
+		headers.Add("Content-Type", mime.TypeByExtension(filepath.Ext(f)))
 	}
 
 	req.URL, ok = args.Next()
