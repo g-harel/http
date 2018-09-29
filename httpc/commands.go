@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -31,7 +32,7 @@ func get(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
 
 	req := &httpc.Request{
-		Verb:    "GET",
+		Method:  "GET",
 		URL:     "",
 		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
 		Body:    nil,
@@ -46,10 +47,12 @@ func get(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgGet)
 	}
 
-	err := httpc.HTTP(req, log, os.Stdout)
+	res, err := httpc.HTTP(req, log)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	io.Copy(os.Stdout, res.Body)
 }
 
 func post(args *Arguments, log *Logger) {
@@ -59,7 +62,7 @@ func post(args *Arguments, log *Logger) {
 	headers.AddRaw(readHeaders(args)...)
 
 	req := &httpc.Request{
-		Verb:    "POST",
+		Method:  "POST",
 		URL:     "",
 		Headers: headers,
 		Body:    nil,
@@ -100,8 +103,10 @@ func post(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgPost)
 	}
 
-	err := httpc.HTTP(req, log, os.Stdout)
+	res, err := httpc.HTTP(req, log)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	io.Copy(os.Stdout, res.Body)
 }
