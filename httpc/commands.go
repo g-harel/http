@@ -38,7 +38,16 @@ func get(args *Arguments, log *Logger) {
 		Body:    nil,
 	}
 
-	var ok bool
+	var file *os.File
+	var err error
+	filename, ok := args.MatchBefore(flagOut)
+	if ok {
+		file, err = os.Create(filename)
+		if err != nil {
+			log.Fatal(errBadOut, msgGet)
+		}
+	}
+
 	req.URL, ok = args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgGet)
@@ -52,7 +61,12 @@ func get(args *Arguments, log *Logger) {
 		log.Fatal(err.Error())
 	}
 
-	io.Copy(os.Stdout, res.Body)
+	if file != nil {
+		log.Print(fmt.Sprintf("Output written to %v", filename))
+		io.Copy(file, res.Body)
+	} else {
+		io.Copy(os.Stdout, res.Body)
+	}
 }
 
 func post(args *Arguments, log *Logger) {
@@ -95,6 +109,16 @@ func post(args *Arguments, log *Logger) {
 		headers.Add("Content-Type", mime.TypeByExtension(filepath.Ext(f)))
 	}
 
+	var file *os.File
+	var err error
+	filename, ok := args.MatchBefore(flagOut)
+	if ok {
+		file, err = os.Create(filename)
+		if err != nil {
+			log.Fatal(errBadOut, msgGet)
+		}
+	}
+
 	req.URL, ok = args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgPost)
@@ -108,5 +132,10 @@ func post(args *Arguments, log *Logger) {
 		log.Fatal(err.Error())
 	}
 
-	io.Copy(os.Stdout, res.Body)
+	if file != nil {
+		log.Print(fmt.Sprintf("Output written to %v", filename))
+		io.Copy(file, res.Body)
+	} else {
+		io.Copy(os.Stdout, res.Body)
+	}
 }
