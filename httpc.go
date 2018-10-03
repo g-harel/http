@@ -26,6 +26,15 @@ type Response struct {
 	StatusCode int
 	Headers    *Headers
 	Body       io.Reader
+	conn       net.Conn
+}
+
+// Close closes the connection to the host.
+func (r *Response) Close() error {
+	if r.conn == nil {
+		return nil
+	}
+	return r.conn.Close()
 }
 
 // Validate checks that the input request is valid.
@@ -109,7 +118,7 @@ func response(conn io.Reader) (*Response, error) {
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("could not read status line: %v", err)
 	}
-	sl := strings.Split(line, " ")
+	sl := strings.Split(strings.TrimSpace(line), " ")
 	if len(sl) < 3 {
 		return nil, fmt.Errorf("could not parse status line: %v", line)
 	}
@@ -152,7 +161,6 @@ func HTTP(req *Request, log io.Writer) (*Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could connect to host: %v", err)
 	}
-	defer conn.Close()
 
 	// All data written to the connection is mirrored into the log.
 	w := io.MultiWriter(conn, log)
@@ -168,6 +176,7 @@ func HTTP(req *Request, log io.Writer) (*Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not read response: %v", err)
 	}
+	res.conn = conn
 
 	// Response status line and headers are written to the log.
 	if req.Body != nil {
@@ -176,7 +185,7 @@ func HTTP(req *Request, log io.Writer) (*Response, error) {
 			return nil, fmt.Errorf("could write to log: %v", err)
 		}
 	}
-	_, err = fmt.Fprintf(log, "%v %v %v", res.Version, res.StatusCode, res.Status)
+	_, err = fmt.Fprintf(log, "%v %v %v\n", res.Version, res.StatusCode, res.Status)
 	if err != nil {
 		return nil, fmt.Errorf("could not log response status line: %v", err)
 	}
@@ -187,6 +196,20 @@ func HTTP(req *Request, log io.Writer) (*Response, error) {
 	_, err = fmt.Fprintf(log, "\n")
 	if err != nil {
 		return nil, fmt.Errorf("could write to log: %v", err)
+	}
+
+	// Redirects are followed without intervention.
+	if res.StatusCode == 301 || res.StatusCode == 302 {
+		// Body contents are ignored and connection is closed.
+		res.Close()
+
+		location, ok := res.Headers.Read("Location")
+		if !ok {
+			return nil, fmt.Errorf("could not read redirect location")
+		}
+
+		req.URL = location
+		return HTTP(req, log)
 	}
 
 	return res, nil

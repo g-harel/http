@@ -60,12 +60,19 @@ func get(args *Arguments, log *Logger) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	defer res.Close()
 
 	if file != nil {
+		_, err := io.Copy(file, res.Body)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 		log.Print(fmt.Sprintf("Output written to %v", filename))
-		io.Copy(file, res.Body)
 	} else {
-		io.Copy(os.Stdout, res.Body)
+		_, err := io.Copy(os.Stdout, res.Body)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 }
 
@@ -131,11 +138,18 @@ func post(args *Arguments, log *Logger) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	defer res.Close()
 
 	if file != nil {
+		_, err := io.Copy(file, res.Body)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 		log.Print(fmt.Sprintf("Output written to %v", filename))
-		io.Copy(file, res.Body)
 	} else {
-		io.Copy(os.Stdout, res.Body)
+		_, err := io.Copy(os.Stdout, res.Body)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 }
