@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/g-harel/httpc"
+	"github.com/g-harel/http"
 )
 
 func help(args *Arguments, log *Logger) {
@@ -31,10 +31,10 @@ func help(args *Arguments, log *Logger) {
 func get(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
 
-	req := &httpc.Request{
+	req := &http.Request{
 		Method:  "GET",
 		URL:     "",
-		Headers: (&httpc.Headers{}).AddRaw(readHeaders(args)...),
+		Headers: (&http.Headers{}).AddRaw(readHeaders(args)...),
 		Body:    nil,
 	}
 
@@ -56,7 +56,10 @@ func get(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgGet)
 	}
 
-	res, err := httpc.HTTP(req, log)
+	client := http.Client{
+		FollowRedirect: true,
+	}
+	res, err := client.Send(req, log)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -79,10 +82,10 @@ func get(args *Arguments, log *Logger) {
 func post(args *Arguments, log *Logger) {
 	log.verbose = args.Match(flagVerbose)
 
-	headers := &httpc.Headers{}
+	headers := &http.Headers{}
 	headers.AddRaw(readHeaders(args)...)
 
-	req := &httpc.Request{
+	req := &http.Request{
 		Method:  "POST",
 		URL:     "",
 		Headers: headers,
@@ -134,7 +137,10 @@ func post(args *Arguments, log *Logger) {
 		log.Fatal(errTooManyArgs, msgPost)
 	}
 
-	res, err := httpc.HTTP(req, log)
+	client := http.Client{
+		FollowRedirect: true,
+	}
+	res, err := client.Send(req, log)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
