@@ -10,4 +10,4 @@ go run ./httpc/*.go post -h 'Content-Type: application/json' -d '{"Assignment": 
 
 go run ./httpc/*.go post -v -h 'Content-Type: application/jsosn' -f './httpc/test/test.json' 'http://httpbin.org/post'
 
-go run ./httpc/*.go get -v -o '.test' 'http://google.com'
+go run ./httpc/*.go get -v -o '/tmp/httpc' 'http://google.com'

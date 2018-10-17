@@ -58,8 +58,9 @@ func get(args *Arguments, log *Logger) {
 
 	client := http.Client{
 		FollowRedirect: true,
+		Logger:         log,
 	}
-	res, err := client.Send(req, log)
+	res, err := client.Send(req)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -139,8 +140,9 @@ func post(args *Arguments, log *Logger) {
 
 	client := http.Client{
 		FollowRedirect: true,
+		Logger:         log,
 	}
-	res, err := client.Send(req, log)
+	res, err := client.Send(req)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

@@ -8,12 +8,12 @@ import (
 
 // Client is used to configure and send http requests.
 type Client struct {
-	// FollowRedirect specifies whether 301 or 302 response are followed or not.
 	FollowRedirect bool
+	Logger         io.Writer
 }
 
 // Send sends an http request.
-func (c *Client) Send(req *Request, log io.Writer) (*Response, error) {
+func (c *Client) Send(req *Request) (*Response, error) {
 	// Validate request.
 	err := req.Validate()
 	if err != nil {
@@ -27,7 +27,7 @@ func (c *Client) Send(req *Request, log io.Writer) (*Response, error) {
 	}
 
 	// All data written to the connection is mirrored into the log.
-	w := io.MultiWriter(conn, log)
+	w := io.MultiWriter(conn, c.Logger)
 
 	// Write request to connection.
 	err = req.Fprint(w)
@@ -44,20 +44,20 @@ func (c *Client) Send(req *Request, log io.Writer) (*Response, error) {
 
 	// Response status line and headers are written to the log.
 	if req.Body != nil {
-		_, err = fmt.Fprintf(log, "\n")
+		_, err = fmt.Fprintf(c.Logger, "\n")
 		if err != nil {
 			return nil, fmt.Errorf("could write to log: %v", err)
 		}
 	}
-	_, err = fmt.Fprintf(log, "%v %v %v\n", res.Version, res.StatusCode, res.Status)
+	_, err = fmt.Fprintf(c.Logger, "%v %v %v\n", res.Version, res.StatusCode, res.Status)
 	if err != nil {
 		return nil, fmt.Errorf("could not log response status line: %v", err)
 	}
-	err = res.Headers.Fprint(log)
+	err = res.Headers.Fprint(c.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("could not log response headers: %v", err)
 	}
-	_, err = fmt.Fprintf(log, "\n")
+	_, err = fmt.Fprintf(c.Logger, "\n")
 	if err != nil {
 		return nil, fmt.Errorf("could write to log: %v", err)
 	}
@@ -73,7 +73,7 @@ func (c *Client) Send(req *Request, log io.Writer) (*Response, error) {
 		}
 
 		req.URL = location
-		return c.Send(req, log)
+		return c.Send(req)
 	}
 
 	return res, nil
