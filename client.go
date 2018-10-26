@@ -14,14 +14,16 @@ type Client struct {
 
 // Send sends an http request.
 func (c *Client) Send(req *Request) (*Response, error) {
-	// Validate request.
-	err := req.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("could validate request: %v", err)
+	if req.Method == "GET" && req.Body != nil {
+		return nil, fmt.Errorf("Cannot write body to GET request")
 	}
 
 	// Open TCP connection to host.
-	conn, err := net.Dial("tcp", req.url.Host)
+	port := req.Port
+	if port == "" {
+		port = "80"
+	}
+	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", req.Hostname, port))
 	if err != nil {
 		return nil, fmt.Errorf("could connect to host: %v", err)
 	}
@@ -72,7 +74,11 @@ func (c *Client) Send(req *Request) (*Response, error) {
 			return nil, fmt.Errorf("could not read redirect location")
 		}
 
-		req.URL = location
+		err = req.URL(location)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse redirect url: %v", err)
+		}
+
 		return c.Send(req)
 	}
 

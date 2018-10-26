@@ -1,0 +1,27 @@
+#!/bin/bash
+
+clear
+
+function sep {
+    echo -e "\n\e[1;35m$@\e[0m\n"
+}
+
+function httpc {
+    sep "httpc" "$@"
+    go run ./httpc/*.go "$@"
+}
+
+# simple get
+httpc get 'http://httpbin.org/get?course=networking&assignment=1'
+
+# verbose get
+httpc get -v 'http://httpbin.org/get?course=networking&assignment=1'
+
+# follow redirect + write output to file
+httpc get -v -o '/tmp/httpc' 'http://httpbin.org/absolute-redirect/3'
+
+# manual header + inline post data
+httpc post -h 'Content-Type: application/json' -d '{"Assignment": 1}' 'http://httpbin.org/post'
+
+# post data from file + automatic content-type
+httpc post -v -f './test/data.json' 'http://httpbin.org/post'

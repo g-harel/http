@@ -33,7 +33,6 @@ func get(args *Arguments, log *Logger) {
 
 	req := &http.Request{
 		Method:  "GET",
-		URL:     "",
 		Headers: (&http.Headers{}).AddRaw(readHeaders(args)...),
 		Body:    nil,
 	}
@@ -48,12 +47,16 @@ func get(args *Arguments, log *Logger) {
 		}
 	}
 
-	req.URL, ok = args.Next()
+	url, ok := args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgGet)
 	}
 	if _, ok := args.Next(); ok {
 		log.Fatal(errTooManyArgs, msgGet)
+	}
+	err = req.URL(url)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	client := http.Client{
@@ -88,7 +91,6 @@ func post(args *Arguments, log *Logger) {
 
 	req := &http.Request{
 		Method:  "POST",
-		URL:     "",
 		Headers: headers,
 		Body:    nil,
 	}
@@ -130,12 +132,16 @@ func post(args *Arguments, log *Logger) {
 		}
 	}
 
-	req.URL, ok = args.Next()
+	url, ok := args.Next()
 	if !ok {
 		log.Fatal(errMissingURL, msgPost)
 	}
 	if _, ok := args.Next(); ok {
 		log.Fatal(errTooManyArgs, msgPost)
+	}
+	err = req.URL(url)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	client := http.Client{

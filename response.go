@@ -20,12 +20,43 @@ type Response struct {
 	conn net.Conn
 }
 
-// Close closes the response's body.
+// Close closes the response's connection.
 func (r *Response) Close() error {
 	if r.conn == nil {
 		return nil
 	}
 	return r.conn.Close()
+}
+
+// Fprint writes the formatted response to w.
+func (r *Response) Fprint(w io.Writer) error {
+	// Write response status line.
+	_, err := fmt.Fprintf(w, "HTTP/1.0 %v %v\r\n", r.StatusCode, r.Status)
+	if err != nil {
+		return fmt.Errorf("could not write status line: %v", err)
+	}
+
+	// Write header lines.
+	err = r.Headers.Fprint(w)
+	if err != nil {
+		return fmt.Errorf("could not write headers: %v", err)
+	}
+
+	// Write empty line to signal end of headers.
+	_, err = fmt.Fprintf(w, "\r\n")
+	if err != nil {
+		return fmt.Errorf("could not write: %v", err)
+	}
+
+	// Write response body.
+	if r.Body != nil {
+		_, err := io.Copy(w, r.Body)
+		if err != nil {
+			return fmt.Errorf("could not write data: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // ReadResponse parses and reads a response from r.

@@ -1,61 +1,65 @@
 package http
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"net"
 	"net/url"
+	"strings"
 )
 
 // Request represents an HTTP request to be sent.
 type Request struct {
-	Method  string
-	URL     string
-	Headers *Headers
-	Body    io.Reader
+	Version    string
+	Method     string
+	Hostname   string
+	Port       string
+	RequestURI string
+	Headers    *Headers
+	Body       io.Reader
 
-	url *url.URL
+	conn net.Conn
 }
 
-// Validate checks that the request is valid and computes the request's url.
-func (r *Request) Validate() error {
-	if r.Method == "GET" && r.Body != nil {
-		return fmt.Errorf("Cannot write body to GET request")
+// Close closes the request's connection.
+func (r *Request) Close() error {
+	if r.conn == nil {
+		return nil
 	}
+	return r.conn.Close()
+}
 
-	u, err := url.Parse(r.URL)
+// URL fills in the Hostname, Port and RequestURI fields in r from a url string.
+func (r *Request) URL(addr string) error {
+	u, err := url.Parse(addr)
 	if err != nil {
-		return fmt.Errorf("could not parse given url: %v", err)
-	}
-	if u.Scheme == "" {
-		return fmt.Errorf("missing protocol in \"%v\"", u.String())
-	}
-	if u.Scheme != "http" {
-		return fmt.Errorf("unknown protocol \"%v\" in \"%v\"", u.Scheme, u.String())
-	}
-	if u.Port() == "" {
-		u.Host += ":80"
-	}
-	if u.Path == "" {
-		u.Path = "/"
+		return err
 	}
 
-	// Validated URL is added to the request's private field.
-	r.url = u
+	r.Hostname = u.Hostname()
+	r.Port = u.Port()
+	r.RequestURI = u.RequestURI()
 
 	return nil
 }
 
-// Fprint writes the a formatted request to w.
+// Fprint writes the formatted request to w.
 func (r *Request) Fprint(w io.Writer) error {
-	if r.url == nil {
-		return fmt.Errorf("cannot print non-validated request")
-	}
-
 	// Host header is written with the value extracted from the url.
-	r.Headers.Add("Host", r.url.Hostname())
+	// Non-standard port is added to the host value.
+	host := r.Hostname
+	if r.Port != "" && r.Port != "80" {
+		host += fmt.Sprintf(":%v", r.Port)
+	}
+	r.Headers.Add("Host", host)
 
-	// Write request status line.
-	_, err := fmt.Fprintf(w, "%v %v HTTP/1.0\r\n", r.Method, r.url.RequestURI())
+	// Write request request line.
+	path := r.RequestURI
+	if path == "" {
+		path = "/"
+	}
+	_, err := fmt.Fprintf(w, "%v %v HTTP/1.0\r\n", r.Method, path)
 	if err != nil {
 		return fmt.Errorf("could not write request line: %v", err)
 	}
@@ -81,4 +85,48 @@ func (r *Request) Fprint(w io.Writer) error {
 	}
 
 	return nil
+}
+
+// ReadRequest parses and reads a request from r.
+func ReadRequest(r io.Reader) (*Request, error) {
+	req := &Request{
+		Headers: &Headers{},
+	}
+
+	// Reader is used to read request line by line.
+	reader := bufio.NewReader(r)
+
+	// Request body is read from the remaining data in the reader.
+	req.Body = reader
+
+	// Read first line of request (request line).
+	line, err := reader.ReadString('\n')
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("could not read request line: %v", err)
+	}
+	rl := strings.Split(strings.TrimSpace(line), " ")
+	if len(rl) < 3 {
+		return nil, fmt.Errorf("could not parse request line: %v", line)
+	}
+	req.Method = rl[0]
+	req.RequestURI = rl[1]
+	req.Version = rl[2]
+
+	// Read and parse header lines.
+	for {
+		line, err := reader.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("could not read header line: %v", err)
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			break
+		}
+		req.Headers.AddRaw(line)
+	}
+
+	return req, nil
 }
