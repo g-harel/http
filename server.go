@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net"
 	"strings"
 )
@@ -12,7 +13,7 @@ func defaultHandler(req *Request) (*Response, error) {
 	return &Response{
 		Status:     "OK",
 		StatusCode: 200,
-		Body:       strings.NewReader("200 OK"),
+		Body:       strings.NewReader("200 OK\n"),
 	}, nil
 }
 
@@ -23,7 +24,7 @@ func defaultErrorHandler(err error) *Response {
 	return &Response{
 		StatusCode: 500,
 		Status:     "Internal Server Error",
-		Body:       strings.NewReader("500 Internal Server Error"),
+		Body:       strings.NewReader("500 Internal Server Error\n"),
 	}
 }
 
@@ -42,18 +43,13 @@ func (s *Server) Listen(port string) error {
 	if err != nil {
 		return err
 	}
-
-	if s.Errors == nil {
-		s.Errors = make(chan error)
-	}
+	defer ln.Close()
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			select {
-			case s.Errors <- err:
-			}
 			conn.Close()
+			s.throw(err)
 			continue
 		}
 
@@ -70,7 +66,7 @@ func (s *Server) Listen(port string) error {
 			config.handler = defaultHandler
 		}
 
-		go handleConn(conn, *s)
+		go handleConn(conn, config)
 	}
 }
 
@@ -84,25 +80,36 @@ func (s *Server) Err(h ErrorHandler) {
 	s.errHandler = h
 }
 
-func handleConn(conn net.Conn, s Server) {
-	defer conn.Close()
+// Non-blocking send to the server's error channel.
+func (s *Server) throw(err error) {
+	if s.Errors != nil {
+		select {
+		case s.Errors <- fmt.Errorf("ERROR: %v", err):
+		default:
+		}
+	}
+}
 
+func handleConn(conn net.Conn, s Server) {
 	var res *Response
+	defer func() {
+		err := res.Fprint(conn)
+		if err != nil {
+			s.throw(err)
+		}
+		conn.Close()
+	}()
 
 	req, err := ReadRequest(conn)
 	if err != nil {
+		s.throw(err)
 		res = s.errHandler(err)
+		return
 	}
 
 	res, err = s.handler(req)
 	if err != nil {
+		s.throw(err)
 		res = s.errHandler(err)
-	}
-
-	err = res.Fprint(conn)
-	if err != nil {
-		select {
-		case s.Errors <- err:
-		}
 	}
 }

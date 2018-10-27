@@ -3,8 +3,16 @@
 clear
 
 function httpfs {
+    bin=/tmp/httpfs
+    go build -o $bin ./httpfs/*.go
+    echo -e "\n\e[1;34mhttpfs $@\e[0m\n"
+    $bin "$@" &
+    rm $bin
+}
+
+function httpc {
     echo -e "\n\e[1;35mhttpc $@\e[0m\n"
-    go run ./httpfs/*.go "$@" &
+    go run ./httpc/*.go "$@"
 }
 
 function cleanup {
@@ -17,4 +25,4 @@ httpfs
 
 sleep 0.3
 
-curl localhost:8080
+httpc get http://localhost:8080
