@@ -1,0 +1,20 @@
+#!/bin/bash
+
+clear
+
+function httpfs {
+    echo -e "\n\e[1;35mhttpc $@\e[0m\n"
+    go run ./httpfs/*.go "$@" &
+}
+
+function cleanup {
+    kill $(jobs -p) &>/dev/null
+}
+
+trap cleanup EXIT
+
+httpfs
+
+sleep 0.3
+
+curl localhost:8080

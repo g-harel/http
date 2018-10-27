@@ -65,9 +65,11 @@ func (r *Request) Fprint(w io.Writer) error {
 	}
 
 	// Write header lines.
-	err = r.Headers.Fprint(w)
-	if err != nil {
-		return fmt.Errorf("could not write headers: %v", err)
+	if r.Headers != nil {
+		err = r.Headers.Fprint(w)
+		if err != nil {
+			return fmt.Errorf("could not write headers: %v", err)
+		}
 	}
 
 	// Write empty line to signal end of headers.

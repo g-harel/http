@@ -99,7 +99,9 @@ func post(args *Arguments, log *Logger) {
 	if ok {
 		req.Body = strings.NewReader(d)
 		headers.Add("Content-Length", strconv.Itoa(len(d)))
-		headers.Add("Content-Type", mime.TypeByExtension(".txt"))
+		if _, ok := headers.Read("Content-Type"); !ok {
+			headers.Add("Content-Type", mime.TypeByExtension(".txt"))
+		}
 	}
 
 	f, ok := args.MatchBefore(flagFile)
