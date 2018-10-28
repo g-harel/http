@@ -15,6 +15,8 @@ func list(dir string) (*http.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %v", err)
 	}
+	defer f.Close()
+
 	s, err := f.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("could not get file info: %v", err)

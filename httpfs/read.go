@@ -17,6 +17,7 @@ func read(path string) (*http.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %v", err)
 	}
+
 	s, err := f.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("could not get file info: %v", err)

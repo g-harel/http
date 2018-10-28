@@ -3,11 +3,11 @@
 <!--
 
 TODO
-- make sure logging req/res is consistent with reality (re-printing outside of Fprint)
-- implement timeout in client
-- implement file write in httpfs
-- add worker pool to handle requests instead of being sequential
 - respond with 400 when going to above dir
+- support content-disposition in list request
+- make sure logging req/res is consistent with reality (re-printing outside of Fprint)
+- implement timeouts
+- add worker pool to handle requests instead of being sequential
 
 file:///home/g-harel/go/src/github.com/g-harel/http/httpc/assignment.pdf
 https://www.w3.org/Protocols/HTTP/1.0/spec.html

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/g-harel/http"
 )
@@ -53,13 +54,24 @@ func main() {
 		isList := req.Path[len(req.Path)-1] == '/'
 
 		if req.Method == "POST" {
-			return http.NewResponse(200), nil
+			s, ok := req.Headers.Read("Content-Length")
+			if !ok {
+				return http.NewResponse(400, "Missing Content-Length"), nil
+			}
+
+			size, err := strconv.Atoi(s)
+			if err != nil {
+				return http.NewResponse(400, "Invalid Content-Length"), nil
+			}
+
+			return write(absolutePath, req.Body, int64(size))
 		}
 
 		if req.Method == "GET" {
 			if isList {
 				return list(absolutePath)
 			}
+
 			return read(absolutePath)
 		}
 

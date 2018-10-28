@@ -8,7 +8,6 @@ FILES=files
 
 # reset test files
 rm -rf $DIR/$FILES/*
-touch $DIR/$FILES/test000
 
 function httpfs {
     bin=/tmp/httpfs
@@ -36,25 +35,37 @@ httpfs -d $DIR -p $PORT
 sleep 0.3
 
 # simple list
-httpc get -v http://localhost:$PORT/
+httpc get http://localhost:$PORT/
 
 # sub-directory list
-httpc get -v http://localhost:$PORT/$FILES/
+touch $DIR/$FILES/test000
+httpc get http://localhost:$PORT/$FILES/
 
 # list non-directory file
-httpc get -v http://localhost:$PORT/httpc/
+httpc get http://localhost:$PORT/data.json/
 
 # list missing file
-httpc get -v http://localhost:$PORT/missing/
+httpc get http://localhost:$PORT/missing/
 
 # list a parent directory
-httpc get -v http://localhost:$PORT/../files/
+httpc get http://localhost:$PORT/../files/
 
 # simple read
-httpc get -v http://localhost:$PORT/data.json
+httpc get http://localhost:$PORT/data.json
 
 # read missing file
-httpc get -v http://localhost:$PORT/missing.txt
+httpc get http://localhost:$PORT/missing.txt
 
 # read in parent directory
-httpc get -v http://localhost:$PORT/../data.json
+httpc get http://localhost:$PORT/../data.json
+
+# simple write
+httpc post -d "001" http://localhost:$PORT/$FILES/test001
+
+# write over file
+echo "000" >> $DIR/$FILES/test000
+httpc post -d "00x" http://localhost:$PORT/$FILES/test000
+
+# write to directory path
+mkdir $DIR/$FILES/testDir
+httpc post -d "test" http://localhost:$PORT/$FILES/testDir

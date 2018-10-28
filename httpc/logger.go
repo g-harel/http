@@ -29,7 +29,7 @@ func (l *Logger) Print(str string) {
 // Output is colored red.
 func (l *Logger) Fatal(strs ...string) {
 	for _, str := range strs {
-		fmt.Fprintf(os.Stderr, "\n\033[31;1m%v\033[0m\n", str)
+		fmt.Fprintf(os.Stderr, "\033[31;1m[HTTPC] %v\033[0m\n", str)
 	}
 	os.Exit(1)
 }
