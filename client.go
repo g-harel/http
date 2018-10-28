@@ -44,25 +44,13 @@ func (c *Client) Send(req *Request) (*Response, error) {
 	}
 	res.conn = conn
 
-	// Response status line and headers are written to the log.
+	// Response is written to the log.
 	if req.Body != nil {
-		_, err = fmt.Fprintf(c.Logger, "\n")
-		if err != nil {
-			return nil, fmt.Errorf("could write to log: %v", err)
-		}
+		_, _ = fmt.Fprintf(c.Logger, "\n")
 	}
-	_, err = fmt.Fprintf(c.Logger, "%v %v %v\n", res.Version, res.StatusCode, res.Status)
-	if err != nil {
-		return nil, fmt.Errorf("could not log response status line: %v", err)
-	}
-	err = res.Headers.Fprint(c.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("could not log response headers: %v", err)
-	}
-	_, err = fmt.Fprintf(c.Logger, "\n")
-	if err != nil {
-		return nil, fmt.Errorf("could write to log: %v", err)
-	}
+	_, _ = fmt.Fprintf(c.Logger, "%v %v %v\n", res.Version, res.StatusCode, res.Status)
+	_ = res.Headers.Fprint(c.Logger)
+	_, _ = fmt.Fprintf(c.Logger, "\n")
 
 	// Redirects are followed without intervention.
 	if c.FollowRedirect && (res.StatusCode == 301 || res.StatusCode == 302) {

@@ -12,7 +12,7 @@ type Logger struct {
 
 // Error prints the error in red to stderr.
 func (l *Logger) Error(err error) {
-	if !l.verbose {
+	if l.verbose {
 		fmt.Fprintf(os.Stderr, "\n\033[31;1m[HTTPFS] %v\033[0m\n", err)
 	}
 }

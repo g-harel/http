@@ -1,6 +1,6 @@
 package http
 
-// Status codes and reasons for HTTP version 1.0.
+// Status codes and reasons for HTTP/1.0.
 // https://www.w3.org/Protocols/HTTP/1.0/spec.html#Status-Code
 var status = map[int]string{
 	200: "OK",

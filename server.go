@@ -36,7 +36,6 @@ func (s *Server) Listen(port string) error {
 			continue
 		}
 
-		// Server config is copied before being sent to a separate thread.
 		config := Server{
 			ErrChan:    s.ErrChan,
 			handler:    s.handler,

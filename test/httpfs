@@ -18,7 +18,8 @@ function httpfs {
 }
 
 function httpc {
-    echo -e "\e[1;35mhttpc $@\e[0m\n"
+    echo -e "\e[1;35mhttpc $@\e[0m" | tr -d '\n'
+    echo -e "\n"
     go run ./httpc/*.go "$@"
     echo
 }
@@ -30,7 +31,7 @@ function cleanup {
 trap cleanup EXIT
 
 # start httpfs in test directory
-httpfs -d $DIR -p $PORT
+httpfs -v -d $DIR -p $PORT
 
 sleep 0.3
 
@@ -60,12 +61,12 @@ httpc get -v http://localhost:$PORT/missing.txt
 httpc get -v http://localhost:$PORT/../data.json
 
 # simple write
-httpc post -v -d "001" http://localhost:$PORT/$FILES/test001
+httpc post -v -d $'001\n' http://localhost:$PORT/$FILES/test001
 
 # write over file
 echo "000" >> $DIR/$FILES/test000
-httpc post -v -d "00x" http://localhost:$PORT/$FILES/test000
+httpc post -v -d $'00x\n' http://localhost:$PORT/$FILES/test000
 
 # write to directory path
 mkdir $DIR/$FILES/testDir
-httpc post -v -d "test" http://localhost:$PORT/$FILES/testDir
+httpc post -v -d $'test\n' http://localhost:$PORT/$FILES/testDir

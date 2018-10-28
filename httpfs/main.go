@@ -35,25 +35,30 @@ func main() {
 	}
 	base := path.Join(wd, *dir)
 
+	// Create server and configure error logging.
 	server := http.Server{
 		ErrChan: make(chan error),
 	}
-
 	go func() {
 		for {
 			logger.Error(<-server.ErrChan)
 		}
 	}()
 
+	// Assign a request handler to the server.
 	server.Use(func(req *http.Request) (*http.Response, error) {
+		// Check for path-related errors.
 		if req.Path == "" {
 			return http.NewResponse(400, "Empty Path"), nil
 		}
 		if req.Path[0] != '/' {
 			return http.NewResponse(400, "Malformed Path"), nil
 		}
-		isList := req.Path[len(req.Path)-1] == '/'
 
+		// List requests end with `/`.
+		isListRequest := req.Path[len(req.Path)-1] == '/'
+
+		// Check that the path does not point outside the working directory.
 		absolutePath := path.Join(base, req.Path)
 		deltaPath, err := filepath.Rel(base, absolutePath)
 		if err != nil {
@@ -63,6 +68,7 @@ func main() {
 			return http.NewResponse(403), nil
 		}
 
+		// Handle a file write.
 		if req.Method == "POST" {
 			s, ok := req.Headers.Read("Content-Length")
 			if !ok {
@@ -77,17 +83,18 @@ func main() {
 			return write(absolutePath, req.Body, int64(size))
 		}
 
+		// Handle a file or directory read.
 		if req.Method == "GET" {
-			if isList {
+			if isListRequest {
 				return list(absolutePath)
 			}
-
 			return read(absolutePath)
 		}
 
 		return http.NewResponse(400), nil
 	})
 
+	// Start listening on specified port.
 	err = server.Listen(":" + *port)
 	if err != nil {
 		panic(err)
