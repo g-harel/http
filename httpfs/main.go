@@ -60,7 +60,7 @@ func main() {
 			if isList {
 				return list(absolutePath)
 			}
-			return http.NewResponse(200), nil
+			return read(absolutePath)
 		}
 
 		return http.NewResponse(400), nil

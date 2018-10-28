@@ -49,7 +49,8 @@ func (s *Server) Listen(port string) error {
 			config.handler = defaultHandler
 		}
 
-		go handleConn(conn, config)
+		// Synchronously handle request.
+		handleConn(conn, config)
 	}
 }
 

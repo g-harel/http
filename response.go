@@ -35,6 +35,7 @@ func NewResponse(code int, body ...string) *Response {
 	return &Response{
 		Status:     msg,
 		StatusCode: code,
+		Headers:    &Headers{},
 		Body:       strings.NewReader(b),
 	}
 }
@@ -97,7 +98,7 @@ func ReadResponse(r io.Reader) (*Response, error) {
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("could not read status line: %v", err)
 	}
-	sl := strings.Split(strings.TrimSpace(line), " ")
+	sl := strings.SplitN(strings.TrimSpace(line), " ", 3)
 	if len(sl) < 3 {
 		return nil, fmt.Errorf("could not parse status line: %v", line)
 	}

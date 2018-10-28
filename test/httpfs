@@ -2,17 +2,26 @@
 
 clear
 
+PORT=8080
+DIR=test
+FILES=files
+
+# reset test files
+rm -rf $DIR/$FILES/*
+touch $DIR/$FILES/test000
+
 function httpfs {
     bin=/tmp/httpfs
     go build -o $bin ./httpfs/*.go
-    echo -e "\n\e[1;34mhttpfs $@\e[0m"
+    echo -e "\n\e[1;34mhttpfs $@\e[0m\n"
     $bin "$@" &
     rm $bin
 }
 
 function httpc {
-    echo -e "\n\e[1;35mhttpc $@\e[0m\n"
+    echo -e "\e[1;35mhttpc $@\e[0m\n"
     go run ./httpc/*.go "$@"
+    echo
 }
 
 function cleanup {
@@ -21,24 +30,31 @@ function cleanup {
 
 trap cleanup EXIT
 
-PORT=8080
-
 # start httpfs in test directory
-httpfs -d test -p $PORT
+httpfs -d $DIR -p $PORT
 
 sleep 0.3
 
 # simple list
-httpc get http://localhost:$PORT/
+httpc get -v http://localhost:$PORT/
 
 # sub-directory list
-httpc get http://localhost:$PORT/files/
+httpc get -v http://localhost:$PORT/$FILES/
 
-# file list
-httpc get http://localhost:$PORT/httpc/
+# list non-directory file
+httpc get -v http://localhost:$PORT/httpc/
 
-# non-existent list
-httpc get http://localhost:$PORT/test/
+# list missing file
+httpc get -v http://localhost:$PORT/missing/
 
-# parent directory list
-httpc get http://localhost:$PORT/../files/
+# list a parent directory
+httpc get -v http://localhost:$PORT/../files/
+
+# simple read
+httpc get -v http://localhost:$PORT/data.json
+
+# read missing file
+httpc get -v http://localhost:$PORT/missing.txt
+
+# read in parent directory
+httpc get -v http://localhost:$PORT/../data.json
