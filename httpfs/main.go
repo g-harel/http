@@ -21,6 +21,10 @@ func main() {
 
 	flag.Parse()
 
+	logger := &Logger{
+		verbose: *verbose,
+	}
+
 	// Find base path whose contents will be served.
 	wd, err := os.Getwd()
 	if err != nil {
@@ -34,8 +38,7 @@ func main() {
 
 	go func() {
 		for {
-			err := <-server.ErrChan
-			fmt.Printf("\033[31;1m%v\033[0m\n", err.Error())
+			logger.Error(<-server.ErrChan)
 		}
 	}()
 

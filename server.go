@@ -1,6 +1,7 @@
 package http
 
 import (
+	"io"
 	"net"
 )
 
@@ -78,7 +79,7 @@ func defaultErrorHandler(err error) *Response {
 	return NewResponse(500)
 }
 
-func handleConn(conn net.Conn, s Server) {
+func handleConn(conn io.ReadWriteCloser, s Server) {
 	var res *Response
 	defer func() {
 		err := res.Fprint(conn)
