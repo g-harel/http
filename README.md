@@ -8,7 +8,6 @@ TODO
 - add verbose-aware logger for httpfs (red/stderr errors would be nice)
 - implement file read/write in httpfs
 - add more status codes/messages
-- add global help message for httpfs
 
 file:///home/g-harel/go/src/github.com/g-harel/http/httpc/assignment.pdf
 https://www.w3.org/Protocols/HTTP/1.0/spec.html

@@ -14,6 +14,11 @@ var port = flag.String("p", "8080", "Specifies the port number that the server w
 var dir = flag.String("d", "", "Specifies the directory that the server will use to read/write requested files. Default is the current directory when launching the application.")
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "httpfs is a simple file server.\nusage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	// Find base path whose contents will be served.
