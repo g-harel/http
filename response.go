@@ -24,7 +24,7 @@ type Response struct {
 // If no strings are given to fill the body, the status message is used.
 // Body strings are joined with newlines.
 func NewResponse(code int, body ...string) *Response {
-	msg, ok := statusMessages[code]
+	msg, ok := status[code]
 	if !ok {
 		return NewResponse(500)
 	}
