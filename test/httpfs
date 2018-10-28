@@ -5,7 +5,7 @@ clear
 function httpfs {
     bin=/tmp/httpfs
     go build -o $bin ./httpfs/*.go
-    echo -e "\n\e[1;34mhttpfs $@\e[0m\n"
+    echo -e "\n\e[1;34mhttpfs $@\e[0m"
     $bin "$@" &
     rm $bin
 }
@@ -21,8 +21,24 @@ function cleanup {
 
 trap cleanup EXIT
 
-httpfs
+PORT=8080
+
+# start httpfs in test directory
+httpfs -d test -p $PORT
 
 sleep 0.3
 
-httpc get http://localhost:8080
+# simple list
+httpc get http://localhost:$PORT/
+
+# sub-directory list
+httpc get http://localhost:$PORT/files/
+
+# file list
+httpc get http://localhost:$PORT/httpc/
+
+# non-existent list
+httpc get http://localhost:$PORT/test/
+
+# parent directory list
+httpc get http://localhost:$PORT/../files/

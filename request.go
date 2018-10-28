@@ -11,13 +11,14 @@ import (
 
 // Request represents an HTTP request to be sent.
 type Request struct {
-	Version    string
-	Method     string
-	Hostname   string
-	Port       string
-	RequestURI string
-	Headers    *Headers
-	Body       io.Reader
+	Version  string
+	Method   string
+	Hostname string
+	Port     string
+	Path     string
+	Query    string
+	Headers  *Headers
+	Body     io.Reader
 
 	conn net.Conn
 }
@@ -39,7 +40,8 @@ func (r *Request) URL(addr string) error {
 
 	r.Hostname = u.Hostname()
 	r.Port = u.Port()
-	r.RequestURI = u.RequestURI()
+	r.Path = u.EscapedPath()
+	r.Query = u.Query().Encode()
 
 	return nil
 }
@@ -55,9 +57,12 @@ func (r *Request) Fprint(w io.Writer) error {
 	r.Headers.Add("Host", host)
 
 	// Write request request line.
-	path := r.RequestURI
+	path := r.Path
 	if path == "" {
 		path = "/"
+	}
+	if r.Query != "" {
+		path += "?" + r.Query
 	}
 	_, err := fmt.Fprintf(w, "%v %v HTTP/1.0\r\n", r.Method, path)
 	if err != nil {
@@ -110,8 +115,15 @@ func ReadRequest(r io.Reader) (*Request, error) {
 	if len(rl) < 3 {
 		return nil, fmt.Errorf("could not parse request line: %v", line)
 	}
+
+	u, err := url.ParseRequestURI(rl[1])
+	if err != nil {
+		return nil, fmt.Errorf("could not parse request URI: %v", err)
+	}
+
 	req.Method = rl[0]
-	req.RequestURI = rl[1]
+	req.Path = u.EscapedPath()
+	req.Query = u.Query().Encode()
 	req.Version = rl[2]
 
 	// Read and parse header lines.

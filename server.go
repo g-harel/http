@@ -1,32 +1,14 @@
 package http
 
 import (
-	"fmt"
 	"net"
-	"strings"
 )
 
 // Handler function handles the server's requests.
 type Handler func(req *Request) (*Response, error)
 
-func defaultHandler(req *Request) (*Response, error) {
-	return &Response{
-		Status:     "OK",
-		StatusCode: 200,
-		Body:       strings.NewReader("200 OK\n"),
-	}, nil
-}
-
 // ErrorHandler should produce a response from an error.
 type ErrorHandler func(err error) *Response
-
-func defaultErrorHandler(err error) *Response {
-	return &Response{
-		StatusCode: 500,
-		Status:     "Internal Server Error",
-		Body:       strings.NewReader("500 Internal Server Error\n"),
-	}
-}
 
 // Server is used to respond to http requests.
 type Server struct {
@@ -34,7 +16,7 @@ type Server struct {
 	errHandler ErrorHandler
 
 	// Errors that cannot be handled by errorHandler are sent to this channel.
-	Errors chan error
+	ErrChan chan error
 }
 
 // Listen listens for incoming requests on the requested port.
@@ -55,7 +37,7 @@ func (s *Server) Listen(port string) error {
 
 		// Server config is copied before being sent to a separate thread.
 		config := Server{
-			Errors:     s.Errors,
+			ErrChan:    s.ErrChan,
 			handler:    s.handler,
 			errHandler: s.errHandler,
 		}
@@ -75,19 +57,25 @@ func (s *Server) Use(h Handler) {
 	s.handler = h
 }
 
-// Err configures the server to use the given ErrorHandler.
-func (s *Server) Err(h ErrorHandler) {
+// Catch configures the server to use the given ErrorHandler.
+func (s *Server) Catch(h ErrorHandler) {
 	s.errHandler = h
 }
 
-// Non-blocking send to the server's error channel.
+// Sends error to the server's error channel.
+// It is assumed that the values will be received if channel is non-nil.
 func (s *Server) throw(err error) {
-	if s.Errors != nil {
-		select {
-		case s.Errors <- fmt.Errorf("ERROR: %v", err):
-		default:
-		}
+	if s.ErrChan != nil {
+		s.ErrChan <- err
 	}
+}
+
+func defaultHandler(req *Request) (*Response, error) {
+	return NewResponse(200), nil
+}
+
+func defaultErrorHandler(err error) *Response {
+	return NewResponse(500)
 }
 
 func handleConn(conn net.Conn, s Server) {

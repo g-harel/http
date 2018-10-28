@@ -20,6 +20,25 @@ type Response struct {
 	conn net.Conn
 }
 
+// NewResponse creates a response for the given status and message.
+// If no strings are given to fill the body, the status message is used.
+// Body strings are joined with newlines.
+func NewResponse(code int, body ...string) *Response {
+	msg, ok := statusMessages[code]
+	if !ok {
+		return NewResponse(500)
+	}
+	b := fmt.Sprintf("%d %v\r\n", code, msg)
+	if len(body) > 0 {
+		b = strings.Join(body, "\r\n") + "\r\n"
+	}
+	return &Response{
+		Status:     msg,
+		StatusCode: code,
+		Body:       strings.NewReader(b),
+	}
+}
+
 // Close closes the response's connection.
 func (r *Response) Close() error {
 	if r.conn == nil {
