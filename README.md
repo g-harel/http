@@ -3,7 +3,6 @@
 <!--
 
 TODO
-- respond with 400 when going to above dir
 - support content-disposition in list request
 - make sure logging req/res is consistent with reality (re-printing outside of Fprint)
 - implement timeouts

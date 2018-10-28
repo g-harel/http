@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/g-harel/http"
 )
@@ -50,8 +52,16 @@ func main() {
 		if req.Path[0] != '/' {
 			return http.NewResponse(400, "Malformed Path"), nil
 		}
-		absolutePath := path.Join(base, path.Clean(req.Path))
 		isList := req.Path[len(req.Path)-1] == '/'
+
+		absolutePath := path.Join(base, req.Path)
+		deltaPath, err := filepath.Rel(base, absolutePath)
+		if err != nil {
+			return nil, fmt.Errorf("could not check for dangerous path")
+		}
+		if strings.Index(deltaPath, "../") >= 0 {
+			return http.NewResponse(403), nil
+		}
 
 		if req.Method == "POST" {
 			s, ok := req.Headers.Read("Content-Length")
