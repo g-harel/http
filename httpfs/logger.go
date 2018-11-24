@@ -16,3 +16,9 @@ func (l *Logger) Error(err error) {
 		fmt.Fprintf(os.Stderr, "\n\033[31;1m[HTTPFS] %v\033[0m\n", err)
 	}
 }
+
+// Fatal logs the error and exits.
+func (l *Logger) Fatal(err error) {
+	l.Error(err)
+	os.Exit(1)
+}

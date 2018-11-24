@@ -31,7 +31,7 @@ func main() {
 	// Find base path whose contents will be served.
 	wd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
 	base := path.Join(wd, *dir)
 
@@ -97,6 +97,6 @@ func main() {
 	// Start listening on specified port.
 	err = server.Listen(":" + *port)
 	if err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
 }

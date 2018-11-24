@@ -12,9 +12,11 @@ rm -rf $DIR/$FILES/*
 function httpfs {
     bin=/tmp/httpfs
     go build -o $bin ./httpfs/*.go
-    echo -e "\n\e[1;34mhttpfs $@\e[0m\n"
+    echo -e "\n\e[1;34mhttpfs $@\e[0m"
     $bin "$@" &
     rm $bin
+    sleep 0.1
+    echo
 }
 
 function httpc {

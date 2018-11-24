@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"net"
 	"net/url"
 	"strings"
+
+	"github.com/g-harel/http/transport"
 )
 
 // Request represents an HTTP request to be sent.
@@ -20,7 +21,7 @@ type Request struct {
 	Headers  *Headers
 	Body     io.Reader
 
-	conn net.Conn
+	conn transport.Connection
 }
 
 // Close closes the request's connection.
