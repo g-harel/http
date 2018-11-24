@@ -2,7 +2,10 @@ package transport
 
 import (
 	"fmt"
-	"net"
+	"io"
+
+	"github.com/g-harel/http/transport/tcp"
+	"github.com/g-harel/http/transport/udp"
 )
 
 // Supported protocols.
@@ -12,11 +15,7 @@ const (
 )
 
 // Connection represents a generic network connection.
-type Connection interface {
-	Read(b []byte) (n int, err error)
-	Write(b []byte) (n int, err error)
-	Close() error
-}
+type Connection = io.ReadWriteCloser
 
 // Listener represents a generic network listener.
 type Listener interface {
@@ -26,7 +25,10 @@ type Listener interface {
 
 func Dial(protocol string, address string) (Connection, error) {
 	if protocol == TCP {
-		return net.Dial(protocol, address)
+		return tcp.Dial(address)
+	}
+	if protocol == UDP {
+		return udp.Dial(address)
 	}
 
 	return nil, fmt.Errorf("unrecognized protocol \"%v\"", protocol)
@@ -34,11 +36,10 @@ func Dial(protocol string, address string) (Connection, error) {
 
 func Listen(protocol string, port string) (Listener, error) {
 	if protocol == TCP {
-		ln, err := net.Listen(protocol, port)
-		if err != nil {
-			return nil, fmt.Errorf("could not listen: %v", err)
-		}
-		return &tcpListener{ln}, nil
+		return tcp.Listen(port)
+	}
+	if protocol == UDP {
+		return udp.Listen(port)
 	}
 
 	return nil, fmt.Errorf("unrecognized protocol \"%v\"", protocol)
