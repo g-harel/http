@@ -8,9 +8,9 @@ import (
 )
 
 func Listen(port string) (*Listener, error) {
-	log.SetPrefix("[SERVER] ")
+	log.SetPrefix("     [SERVER]          ")
 	log.SetFlags(0)
-	log.Printf("Listen(port: \"%v\")\n", port)
+	log.Printf("Listn(%v)\n", port)
 
 	s, err := NewSocket(port)
 	if err != nil {
@@ -48,7 +48,9 @@ func (ln *Listener) Accept() (connection.Connection, error) {
 		return nil, fmt.Errorf("send SYNACK packet: %v", err)
 	}
 
-	ackPacket, err := ln.socket.Receive(Timeout)
+	window := NewWindow(ln.socket, synAckPacket.Sequence)
+
+	ackPacket, err := window.Read(Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("receive ACK packet: %v", err)
 	}
@@ -62,7 +64,7 @@ func (ln *Listener) Accept() (connection.Connection, error) {
 
 	log.Printf("connection established\n")
 
-	return NewConn(ln.socket, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort), nil
+	return NewConn(ln.socket, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort, window), nil
 }
 
 func (ln *Listener) Close() error {

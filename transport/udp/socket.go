@@ -41,8 +41,6 @@ func NewSocket(address string) (*Socket, error) {
 }
 
 func (s *Socket) Send(p *Packet, timeout time.Duration) error {
-	log.Printf("Send(type: %v, seq: %v)", p.Type, p.Sequence)
-
 	err := s.Transport.SetWriteDeadline(time.Now().Add(timeout))
 	if err != nil {
 		return fmt.Errorf("set send timeout: %v", err)
@@ -58,6 +56,8 @@ func (s *Socket) Send(p *Packet, timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("write packet: %v", err)
 	}
+
+	log.Printf("Socket.Send(%v, %v)", p.Type, p.Sequence)
 
 	return nil
 }
@@ -86,7 +86,7 @@ func (s *Socket) Receive(timeout time.Duration) (*Packet, error) {
 		return nil, fmt.Errorf("parse packet: %v", err)
 	}
 
-	log.Printf("Receive(type: %v, seq: %v)", p.Type, p.Sequence)
+	log.Printf("Socket.Receive(%v, %v)", p.Type, p.Sequence)
 
 	return p, nil
 }

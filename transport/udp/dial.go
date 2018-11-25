@@ -10,9 +10,9 @@ import (
 )
 
 func Dial(address string) (connection.Connection, error) {
-	log.SetPrefix("[CLIENT] ")
+	log.SetPrefix("     [CLIENT] ")
 	log.SetFlags(0)
-	log.Printf("Dial(address: \"%v\")\n", address)
+	log.Printf("Dial(%v)\n", address)
 
 	s, err := NewSocket(":0")
 	if err != nil {
@@ -26,7 +26,7 @@ func Dial(address string) (connection.Connection, error) {
 
 	synPacket := &Packet{
 		Type:        SYN,
-		Sequence:    rand.Uint32(),
+		Sequence:    rand.Uint32() % 128,
 		PeerAddress: binary.BigEndian.Uint32(peerAddr.IP.To4()),
 		PeerPort:    uint16(peerAddr.Port),
 		Payload:     []byte{},
@@ -64,5 +64,5 @@ func Dial(address string) (connection.Connection, error) {
 
 	log.Printf("connection established\n")
 
-	return NewConn(s, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort), nil
+	return NewConn(s, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort, NewWindow(s, ackPacket.Sequence)), nil
 }

@@ -72,7 +72,7 @@ func (s *Server) Catch(h ErrorHandler) {
 // It is assumed that the values will be received if channel is non-nil.
 func (s *Server) throw(err error) {
 	if s.ErrChan != nil {
-		s.ErrChan <- err
+		s.ErrChan <- fmt.Errorf("server: %v", err)
 	}
 }
 
@@ -107,7 +107,7 @@ func handleConn(conn connection.Connection, s Server) {
 		return
 	}
 
-	log.Printf("handler(req)\n")
+	log.Printf("handl(req)\n")
 	res, err = s.handler(req)
 	if err != nil {
 		s.throw(fmt.Errorf("handle request: %v", err))

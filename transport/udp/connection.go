@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 
 	"github.com/g-harel/http/transport/connection"
@@ -22,7 +21,8 @@ type Conn struct {
 	peerAddress uint32
 	peerPort    uint16
 
-	sending *bytes.Buffer
+	sending   *bytes.Buffer
+	receiving *Window
 
 	// lock sync.Mutex
 	// Chan chan Packet
@@ -35,40 +35,33 @@ type Conn struct {
 	// recvChan   chan Packet
 }
 
-func NewConn(s *Socket, seq uint32, addr uint32, port uint16) *Conn {
+func NewConn(s *Socket, seq uint32, addr uint32, port uint16, window *Window) *Conn {
 	c := &Conn{
 		socket:      s,
 		sequence:    seq,
 		peerAddress: addr,
 		peerPort:    port,
 		sending:     &bytes.Buffer{},
+		receiving:   window,
 	}
 
-	//go func() {
-	//	for {
-	//		p, err := c.socket.Receive(Timeout)
-	//		if err != nil {
-	//			return 0, fmt.Errorf("reading packet: %v", err)
-	//		}
-	//
-	//		log.Printf("Read(payload: len(%v))\n", len(p.Payload))
-	//
-	//		if len(b) < len(p.Payload) {
-	//			return 0, fmt.Errorf("reading packet: read buffer too small")
-	//		}
-	//
-	//		copy(b, p.Payload)
-	//	}
-	//}()
+	c.receiving.swallowAck = true
+	c.receiving.errChan = make(chan error)
+	go func() {
+		for {
+			log.Printf("error: %v", <-c.receiving.errChan)
+		}
+	}()
 
 	return c
 }
 
 func (c *Conn) Commit() error {
-	log.Printf("Commit()\n")
+	log.Printf("Comit()\n")
+	c.sequence++
 
 	p := &Packet{
-		Sequence:    rand.Uint32(),
+		Sequence:    c.sequence,
 		PeerAddress: c.peerAddress,
 		PeerPort:    c.peerPort,
 		Payload:     c.sending.Bytes(),
@@ -97,12 +90,10 @@ func (c *Conn) Commit() error {
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
-	p, err := c.socket.Receive(Timeout)
+	p, err := c.receiving.Read(Timeout)
 	if err != nil {
 		return 0, fmt.Errorf("read packet: %v", err)
 	}
-
-	log.Printf("Read(payload: len(%v))\n", len(p.Payload))
 
 	if len(b) < len(p.Payload) {
 		return 0, fmt.Errorf("read packet: read buffer too small")
@@ -110,24 +101,10 @@ func (c *Conn) Read(b []byte) (int, error) {
 
 	copy(b, p.Payload)
 
-	ackPacket := &Packet{
-		Type:        ACK,
-		Sequence:    p.Sequence,
-		PeerAddress: c.peerAddress,
-		PeerPort:    c.peerPort,
-		Payload:     []byte{},
-	}
-	err = c.socket.Send(ackPacket, Timeout)
-	if err != nil {
-		return 0, fmt.Errorf("ack packet: %v", err)
-	}
-
 	return len(p.Payload), io.EOF
 }
 
 func (c *Conn) Write(b []byte) (int, error) {
-	log.Printf("Write(b: len(%v))\n", len(b))
-
 	return c.sending.Write(b)
 }
 
