@@ -15,7 +15,7 @@ type Server struct {
 	handler    Handler
 	errHandler ErrorHandler
 
-	// Errors that cannot be handled by errorHandler are sent to this channel.
+	// Errors that cannot be handled by errHandler are sent to this channel.
 	ErrChan chan error
 }
 
@@ -30,7 +30,9 @@ func (s *Server) Listen(port string) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			conn.Close()
+			if conn != nil {
+				conn.Close()
+			}
 			s.throw(err)
 			continue
 		}

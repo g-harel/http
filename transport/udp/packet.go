@@ -6,12 +6,17 @@ import (
 	"fmt"
 )
 
-// Valid packet types.
+// Recognized packet types.
 const (
 	ACK uint8 = iota + 1
 	SYN
 	SYNACK
 	NAK
+)
+
+const (
+	MaxPacketSize = 1024
+	MinPacketSize = 11
 )
 
 type Packet struct {
@@ -35,10 +40,10 @@ func (p *Packet) Bytes() []byte {
 }
 
 func (p *Packet) Parse(data []byte) (*Packet, error) {
-	if len(data) < 11 {
+	if len(data) < MinPacketSize {
 		return nil, fmt.Errorf("missing packet header data")
 	}
-	if len(data) > 1024 {
+	if len(data) > MaxPacketSize {
 		return nil, fmt.Errorf("packet is too large")
 	}
 

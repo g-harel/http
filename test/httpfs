@@ -2,12 +2,25 @@
 
 clear
 
-PORT=8080
-DIR=test
-FILES=files
+PORT="8080"
+DIR="test"
+FILES="files"
 
 # reset test files
 rm -rf $DIR/$FILES/*
+
+export TRANSPORT_PROTOCOL="$1"
+export ROUTER_PORT="3002"
+
+if [[ "$TRANSPORT_PROTOCOL" == "udp" ]]; then
+    rm -f ./router.log
+    ./test/router --port $ROUTER_PORT &
+elif [[ "$TRANSPORT_PROTOCOL" != "tcp" ]]; then
+    echo "Transport protocol not specified (tcp, udp)"
+    exit 1
+fi
+
+echo "[[$TRANSPORT_PROTOCOL]]"
 
 function httpfs {
     bin=/tmp/httpfs
@@ -39,6 +52,8 @@ sleep 0.3
 
 # simple list
 httpc get -v http://localhost:$PORT/
+
+exit 0
 
 # sub-directory list
 touch $DIR/$FILES/test000

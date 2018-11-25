@@ -7,10 +7,7 @@ import (
 
 func Listen(port string) (*Listener, error) {
 	ln, err := net.Listen("tcp", port)
-	if err != nil {
-		return nil, err
-	}
-	return &Listener{ln}, nil
+	return &Listener{ln}, err
 }
 
 type Listener struct {
