@@ -10,11 +10,11 @@ FILES="files"
 rm -rf $DIR/$FILES/*
 
 export TRANSPORT_PROTOCOL="$1"
-export ROUTER_PORT="3002"
+export ROUTER_PORT="3004"
 
 if [[ "$TRANSPORT_PROTOCOL" == "udp" ]]; then
     rm -f ./router.log
-    ./test/router --port $ROUTER_PORT &
+    ./test/router --port $ROUTER_PORT --drop-rate=0.0 --max-delay=10ms &
 elif [[ "$TRANSPORT_PROTOCOL" != "tcp" ]]; then
     echo "Transport protocol not specified (tcp, udp)"
     exit 1

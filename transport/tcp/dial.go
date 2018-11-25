@@ -1,10 +1,12 @@
 package tcp
 
 import (
-	"io"
 	"net"
+
+	"github.com/g-harel/http/transport/connection"
 )
 
-func Dial(address string) (io.ReadWriteCloser, error) {
-	return net.Dial("tcp", address)
+func Dial(address string) (connection.Connection, error) {
+	conn, err := net.Dial("tcp", address)
+	return &Connection{conn}, err
 }

@@ -3,12 +3,17 @@ package udp
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
+	"log"
 	"math/rand"
-	"time"
+
+	"github.com/g-harel/http/transport/connection"
 )
 
-func Dial(address string) (io.ReadWriteCloser, error) {
+func Dial(address string) (connection.Connection, error) {
+	log.SetPrefix("[CLIENT] ")
+	log.SetFlags(0)
+	log.Printf("Dial(address: \"%v\")\n", address)
+
 	s, err := NewSocket(":0")
 	if err != nil {
 		return nil, fmt.Errorf("create client socket: %v", err)
@@ -27,12 +32,12 @@ func Dial(address string) (io.ReadWriteCloser, error) {
 		Payload:     []byte{},
 	}
 
-	err = s.Send(synPacket, 10*time.Second)
+	err = s.Send(synPacket, Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("send SYN packet: %v", err)
 	}
 
-	synAckPacket, err := s.Receive(10 * time.Second)
+	synAckPacket, err := s.Receive(Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("receive SYN packet: %v", err)
 	}
@@ -52,11 +57,12 @@ func Dial(address string) (io.ReadWriteCloser, error) {
 		Payload:     []byte{},
 	}
 
-	err = s.Send(ackPacket, 10*time.Second)
+	err = s.Send(ackPacket, Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("send ACK packet: %v", err)
 	}
 
-	// TODO make connection instance
-	return &Conn{}, nil
+	log.Printf("connection established\n")
+
+	return NewConn(s, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort), nil
 }

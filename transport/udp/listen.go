@@ -2,11 +2,16 @@ package udp
 
 import (
 	"fmt"
-	"io"
-	"time"
+	"log"
+
+	"github.com/g-harel/http/transport/connection"
 )
 
 func Listen(port string) (*Listener, error) {
+	log.SetPrefix("[SERVER] ")
+	log.SetFlags(0)
+	log.Printf("Listen(port: \"%v\")\n", port)
+
 	s, err := NewSocket(port)
 	if err != nil {
 		return nil, fmt.Errorf("create sender socket: %v", err)
@@ -18,7 +23,9 @@ type Listener struct {
 	socket *Socket
 }
 
-func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
+func (ln *Listener) Accept() (connection.Connection, error) {
+	log.Printf("Accept()\n")
+
 	synPacket, err := ln.socket.Receive(0)
 	if err != nil {
 		return nil, fmt.Errorf("receive SYN packet: %v", err)
@@ -36,12 +43,12 @@ func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
 		Payload:     []byte{},
 	}
 
-	err = ln.socket.Send(synAckPacket, 10*time.Second)
+	err = ln.socket.Send(synAckPacket, Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("send SYNACK packet: %v", err)
 	}
 
-	ackPacket, err := ln.socket.Receive(10 * time.Second)
+	ackPacket, err := ln.socket.Receive(Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("receive ACK packet: %v", err)
 	}
@@ -53,8 +60,9 @@ func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
 		return nil, fmt.Errorf("synchronize with peer: incorrect ACK response sequence")
 	}
 
-	// TODO make connection instance
-	return &Conn{}, nil
+	log.Printf("connection established\n")
+
+	return NewConn(ln.socket, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort), nil
 }
 
 func (ln *Listener) Close() error {

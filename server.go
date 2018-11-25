@@ -2,8 +2,10 @@ package http
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/g-harel/http/transport"
+	"github.com/g-harel/http/transport/connection"
 )
 
 // Handler function handles the server's requests.
@@ -35,7 +37,7 @@ func (s *Server) Listen(port string) error {
 			if conn != nil {
 				conn.Close()
 			}
-			s.throw(fmt.Errorf("accepting connection: %v", err))
+			s.throw(fmt.Errorf("accept connection: %v", err))
 			continue
 		}
 
@@ -82,13 +84,19 @@ func defaultErrorHandler(err error) *Response {
 	return NewResponse(500)
 }
 
-func handleConn(conn transport.Connection, s Server) {
+func handleConn(conn connection.Connection, s Server) {
 	var res *Response
 	defer func() {
 		err := res.Fprint(conn)
 		if err != nil {
 			s.throw(fmt.Errorf("write response: %v", err))
 		}
+
+		err = conn.Commit()
+		if err != nil {
+			s.throw(fmt.Errorf("commit response: %v", err))
+		}
+
 		conn.Close()
 	}()
 
@@ -99,6 +107,7 @@ func handleConn(conn transport.Connection, s Server) {
 		return
 	}
 
+	log.Printf("handler(req)\n")
 	res, err = s.handler(req)
 	if err != nil {
 		s.throw(fmt.Errorf("handle request: %v", err))

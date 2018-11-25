@@ -38,6 +38,11 @@ func (c *Client) Send(req *Request) (*Response, error) {
 		return nil, fmt.Errorf("write request: %v", err)
 	}
 
+	err = conn.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("commit request: %v", err)
+	}
+
 	// Read and parse response from connection.
 	res, err := ReadResponse(conn)
 	if err != nil {

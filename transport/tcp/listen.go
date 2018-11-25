@@ -1,8 +1,9 @@
 package tcp
 
 import (
-	"io"
 	"net"
+
+	"github.com/g-harel/http/transport/connection"
 )
 
 func Listen(port string) (*Listener, error) {
@@ -14,8 +15,9 @@ type Listener struct {
 	net.Listener
 }
 
-func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
-	return ln.Listener.Accept()
+func (ln *Listener) Accept() (connection.Connection, error) {
+	conn, err := ln.Listener.Accept()
+	return &Connection{conn}, err
 }
 
 func (ln *Listener) Close() error {

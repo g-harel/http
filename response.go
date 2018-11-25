@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/g-harel/http/transport"
+	"github.com/g-harel/http/transport/connection"
 )
 
 // Response represents a received HTTP response.
@@ -18,7 +18,7 @@ type Response struct {
 	Headers    *Headers
 	Body       io.Reader
 
-	conn transport.Connection
+	conn connection.Connection
 }
 
 // NewResponse creates a response for the given status and message.

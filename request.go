@@ -2,12 +2,14 @@ package http
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
 
-	"github.com/g-harel/http/transport"
+	"github.com/g-harel/http/transport/connection"
 )
 
 // Request represents an HTTP request to be sent.
@@ -21,7 +23,7 @@ type Request struct {
 	Headers  *Headers
 	Body     io.Reader
 
-	conn transport.Connection
+	conn connection.Connection
 }
 
 // Close closes the request's connection.
@@ -104,9 +106,6 @@ func ReadRequest(r io.Reader) (*Request, error) {
 	// Reader is used to read request line by line.
 	reader := bufio.NewReader(r)
 
-	// Request body is read from the remaining data in the reader.
-	req.Body = reader
-
 	// Read first line of request (request line).
 	line, err := reader.ReadString('\n')
 	if err != nil && err != io.EOF {
@@ -142,6 +141,22 @@ func ReadRequest(r io.Reader) (*Request, error) {
 		}
 		req.Headers.AddRaw(line)
 	}
+
+	var length int
+	len, ok := req.Headers.Read("Content-Length")
+	if !ok {
+		length = 0
+	} else {
+		length, err = strconv.Atoi(len)
+		if err != nil {
+			return nil, fmt.Errorf("parse Content-Length header: %v", err)
+		}
+	}
+
+	// Request body is read from the remaining data in the reader.
+	b := &bytes.Buffer{}
+	req.Body = b
+	io.CopyN(b, reader, int64(length))
 
 	return req, nil
 }

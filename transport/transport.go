@@ -2,8 +2,9 @@ package transport
 
 import (
 	"fmt"
-	"io"
+	"math/rand"
 
+	"github.com/g-harel/http/transport/connection"
 	"github.com/g-harel/http/transport/tcp"
 	"github.com/g-harel/http/transport/udp"
 )
@@ -14,16 +15,16 @@ const (
 	UDP = "udp"
 )
 
-// Connection represents a generic network connection.
-type Connection = io.ReadWriteCloser
+// EOF is a special sequence to signal the end of a message (very sketchy).
+var EOF = []byte{byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64())}
 
 // Listener represents a generic network listener.
 type Listener interface {
-	Accept() (Connection, error)
+	Accept() (connection.Connection, error)
 	Close() error
 }
 
-func Dial(protocol string, address string) (Connection, error) {
+func Dial(protocol string, address string) (connection.Connection, error) {
 	if protocol == TCP {
 		return tcp.Dial(address)
 	}

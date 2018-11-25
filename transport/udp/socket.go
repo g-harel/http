@@ -2,10 +2,13 @@ package udp
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"time"
 )
+
+const Timeout = 2 * time.Second
 
 func ResolveAddr(address string) (*net.UDPAddr, error) {
 	addr, err := net.ResolveUDPAddr("udp4", address)
@@ -38,6 +41,8 @@ func NewSocket(address string) (*Socket, error) {
 }
 
 func (s *Socket) Send(p *Packet, timeout time.Duration) error {
+	log.Printf("Send(type: %v, seq: %v)", p.Type, p.Sequence)
+
 	err := s.Transport.SetWriteDeadline(time.Now().Add(timeout))
 	if err != nil {
 		return fmt.Errorf("set send timeout: %v", err)
@@ -60,11 +65,15 @@ func (s *Socket) Send(p *Packet, timeout time.Duration) error {
 func (s *Socket) Receive(timeout time.Duration) (*Packet, error) {
 	b := make([]byte, MaxPacketSize)
 
+	// No deadline if timeout is zero.
+	var deadline time.Time
 	if timeout != 0 {
-		err := s.Transport.SetReadDeadline(time.Now().Add(timeout))
-		if err != nil {
-			return nil, fmt.Errorf("set timeout: %v", err)
-		}
+		deadline = time.Now().Add(timeout)
+	}
+
+	err := s.Transport.SetReadDeadline(deadline)
+	if err != nil {
+		return nil, fmt.Errorf("set timeout: %v", err)
 	}
 
 	n, _, err := s.Transport.ReadFrom(b)
@@ -76,6 +85,8 @@ func (s *Socket) Receive(timeout time.Duration) (*Packet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse packet: %v", err)
 	}
+
+	log.Printf("Receive(type: %v, seq: %v)", p.Type, p.Sequence)
 
 	return p, nil
 }
