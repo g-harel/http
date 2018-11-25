@@ -13,13 +13,13 @@ func list(dir string) (*http.Response, error) {
 		return http.NewResponse(404), nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("could not read file: %v", err)
+		return nil, fmt.Errorf("read file: %v", err)
 	}
 	defer f.Close()
 
 	s, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("could not get file info: %v", err)
+		return nil, fmt.Errorf("get file info: %v", err)
 	}
 	if !s.IsDir() {
 		return http.NewResponse(404), nil
@@ -27,7 +27,7 @@ func list(dir string) (*http.Response, error) {
 
 	files, err := f.Readdir(0)
 	if err != nil {
-		return nil, fmt.Errorf("could not read directory: %v", err)
+		return nil, fmt.Errorf("read directory: %v", err)
 	}
 
 	filenames := []string{}

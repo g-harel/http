@@ -62,7 +62,7 @@ func main() {
 		absolutePath := path.Join(base, req.Path)
 		deltaPath, err := filepath.Rel(base, absolutePath)
 		if err != nil {
-			return nil, fmt.Errorf("could not check for dangerous path")
+			return nil, fmt.Errorf("check for dangerous path")
 		}
 		if strings.Index(deltaPath, "../") >= 0 {
 			return http.NewResponse(403), nil

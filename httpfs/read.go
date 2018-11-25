@@ -15,12 +15,12 @@ func read(path string) (*http.Response, error) {
 		return http.NewResponse(404), nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("could not read file: %v", err)
+		return nil, fmt.Errorf("read file: %v", err)
 	}
 
 	s, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("could not get file info: %v", err)
+		return nil, fmt.Errorf("get file info: %v", err)
 	}
 	if s.IsDir() {
 		return http.NewResponse(404), nil

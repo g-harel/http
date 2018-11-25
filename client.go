@@ -26,7 +26,7 @@ func (c *Client) Send(req *Request) (*Response, error) {
 	}
 	conn, err := transport.Dial(transportProtocol, fmt.Sprintf("%v:%v", req.Hostname, port))
 	if err != nil {
-		return nil, fmt.Errorf("could connect to host: %v", err)
+		return nil, fmt.Errorf("connect to host: %v", err)
 	}
 
 	// All data written to the connection is mirrored into the log.
@@ -35,13 +35,13 @@ func (c *Client) Send(req *Request) (*Response, error) {
 	// Write request to connection.
 	err = req.Fprint(w)
 	if err != nil {
-		return nil, fmt.Errorf("could not write request: %v", err)
+		return nil, fmt.Errorf("write request: %v", err)
 	}
 
 	// Read and parse response from connection.
 	res, err := ReadResponse(conn)
 	if err != nil {
-		return nil, fmt.Errorf("could not read response: %v", err)
+		return nil, fmt.Errorf("read response: %v", err)
 	}
 	res.conn = conn
 
@@ -60,12 +60,12 @@ func (c *Client) Send(req *Request) (*Response, error) {
 
 		location, ok := res.Headers.Read("Location")
 		if !ok {
-			return nil, fmt.Errorf("could not read redirect location")
+			return nil, fmt.Errorf("read redirect location")
 		}
 
 		err = req.URL(location)
 		if err != nil {
-			return nil, fmt.Errorf("could not parse redirect url: %v", err)
+			return nil, fmt.Errorf("parse redirect url: %v", err)
 		}
 
 		return c.Send(req)

@@ -67,28 +67,28 @@ func (r *Request) Fprint(w io.Writer) error {
 	}
 	_, err := fmt.Fprintf(w, "%v %v HTTP/1.0\r\n", r.Method, path)
 	if err != nil {
-		return fmt.Errorf("could not write request line: %v", err)
+		return fmt.Errorf("write request line: %v", err)
 	}
 
 	// Write header lines.
 	if r.Headers != nil {
 		err = r.Headers.Fprint(w)
 		if err != nil {
-			return fmt.Errorf("could not write headers: %v", err)
+			return fmt.Errorf("write headers: %v", err)
 		}
 	}
 
 	// Write empty line to signal end of headers.
 	_, err = fmt.Fprintf(w, "\r\n")
 	if err != nil {
-		return fmt.Errorf("could not write: %v", err)
+		return fmt.Errorf("write: %v", err)
 	}
 
 	// Write request body.
 	if r.Body != nil {
 		_, err := io.Copy(w, r.Body)
 		if err != nil {
-			return fmt.Errorf("could not write data: %v", err)
+			return fmt.Errorf("write data: %v", err)
 		}
 	}
 
@@ -110,16 +110,16 @@ func ReadRequest(r io.Reader) (*Request, error) {
 	// Read first line of request (request line).
 	line, err := reader.ReadString('\n')
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("could not read request line: %v", err)
+		return nil, fmt.Errorf("read request line: %v", err)
 	}
 	rl := strings.Split(strings.TrimSpace(line), " ")
 	if len(rl) < 3 {
-		return nil, fmt.Errorf("could not parse request line: %v", line)
+		return nil, fmt.Errorf("parse request line: \"%v\"", line)
 	}
 
 	u, err := url.ParseRequestURI(rl[1])
 	if err != nil {
-		return nil, fmt.Errorf("could not parse request URI: %v", err)
+		return nil, fmt.Errorf("parse request URI: %v", err)
 	}
 
 	req.Method = rl[0]
@@ -134,7 +134,7 @@ func ReadRequest(r io.Reader) (*Request, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("could not read header line: %v", err)
+			return nil, fmt.Errorf("read header line: %v", err)
 		}
 		line = strings.TrimSpace(line)
 		if line == "" {

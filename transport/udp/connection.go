@@ -32,7 +32,7 @@ type Conn struct {
 func NewConn(from string) (*Conn, error) {
 	c, err := net.ListenPacket("udp4", from)
 	if err != nil {
-		return nil, fmt.Errorf("could not create raw packet connection: %s", err)
+		return nil, fmt.Errorf("create raw packet connection: %s", err)
 	}
 
 	conn := &Conn{
@@ -47,7 +47,7 @@ func NewConn(from string) (*Conn, error) {
 func (c *Conn) Peer(addr string) error {
 	to, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
-		return fmt.Errorf("could not resolve peer address: %v", err)
+		return fmt.Errorf("resolve peer address: %v", err)
 	}
 	c.To = to
 	return nil

@@ -9,7 +9,7 @@ import (
 func Listen(port string) (*Listener, error) {
 	s, err := NewSocket(port)
 	if err != nil {
-		return nil, fmt.Errorf("could not create sender socket: %v", err)
+		return nil, fmt.Errorf("create sender socket: %v", err)
 	}
 	return &Listener{s}, nil
 }
@@ -21,11 +21,11 @@ type Listener struct {
 func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
 	synPacket, err := ln.socket.Receive(0)
 	if err != nil {
-		return nil, fmt.Errorf("could not receive SYN packet: %v", err)
+		return nil, fmt.Errorf("receive SYN packet: %v", err)
 	}
 
 	if synPacket.Type != SYN {
-		return nil, fmt.Errorf("could not synchronize with peer: incorrect SYN type")
+		return nil, fmt.Errorf("synchronize with peer: incorrect SYN type")
 	}
 
 	synAckPacket := &Packet{
@@ -38,19 +38,19 @@ func (ln *Listener) Accept() (io.ReadWriteCloser, error) {
 
 	err = ln.socket.Send(synAckPacket, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("could not send SYNACK packet: %v", err)
+		return nil, fmt.Errorf("send SYNACK packet: %v", err)
 	}
 
 	ackPacket, err := ln.socket.Receive(10 * time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("could not receive ACK packet: %v", err)
+		return nil, fmt.Errorf("receive ACK packet: %v", err)
 	}
 
 	if ackPacket.Type != ACK {
-		return nil, fmt.Errorf("could not synchronize with peer: incorrect ACK type")
+		return nil, fmt.Errorf("synchronize with peer: incorrect ACK type")
 	}
 	if ackPacket.Sequence != synPacket.Sequence {
-		return nil, fmt.Errorf("could not synchronize with peer: incorrect ACK response sequence")
+		return nil, fmt.Errorf("synchronize with peer: incorrect ACK response sequence")
 	}
 
 	// TODO make connection instance

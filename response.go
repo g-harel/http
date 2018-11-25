@@ -54,28 +54,28 @@ func (r *Response) Fprint(w io.Writer) error {
 	// Write response status line.
 	_, err := fmt.Fprintf(w, "HTTP/1.0 %v %v\r\n", r.StatusCode, r.Status)
 	if err != nil {
-		return fmt.Errorf("could not write status line: %v", err)
+		return fmt.Errorf("write status line: %v", err)
 	}
 
 	// Write header lines.
 	if r.Headers != nil {
 		err = r.Headers.Fprint(w)
 		if err != nil {
-			return fmt.Errorf("could not write headers: %v", err)
+			return fmt.Errorf("write headers: %v", err)
 		}
 	}
 
 	// Write empty line to signal end of headers.
 	_, err = fmt.Fprintf(w, "\r\n")
 	if err != nil {
-		return fmt.Errorf("could not write: %v", err)
+		return fmt.Errorf("write: %v", err)
 	}
 
 	// Write response body.
 	if r.Body != nil {
 		_, err := io.Copy(w, r.Body)
 		if err != nil {
-			return fmt.Errorf("could not write data: %v", err)
+			return fmt.Errorf("write data: %v", err)
 		}
 	}
 
@@ -97,16 +97,16 @@ func ReadResponse(r io.Reader) (*Response, error) {
 	// Read first line of response (status line).
 	line, err := reader.ReadString('\n')
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("could not read status line: %v", err)
+		return nil, fmt.Errorf("read status line: %v", err)
 	}
 	sl := strings.SplitN(strings.TrimSpace(line), " ", 3)
 	if len(sl) < 3 {
-		return nil, fmt.Errorf("could not parse status line: %v", line)
+		return nil, fmt.Errorf("parse status line: \"%v\"", line)
 	}
 	res.Version = sl[0]
 	res.StatusCode, err = strconv.Atoi(sl[1])
 	if err != nil {
-		return nil, fmt.Errorf("could not parse status code: %v", err)
+		return nil, fmt.Errorf("parse status code: %v", err)
 	}
 	res.Status = sl[2]
 
@@ -117,7 +117,7 @@ func ReadResponse(r io.Reader) (*Response, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("could not read header line: %v", err)
+			return nil, fmt.Errorf("read header line: %v", err)
 		}
 		line = strings.TrimSpace(line)
 		if line == "" {

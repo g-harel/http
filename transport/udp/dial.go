@@ -11,12 +11,12 @@ import (
 func Dial(address string) (io.ReadWriteCloser, error) {
 	s, err := NewSocket(":0")
 	if err != nil {
-		return nil, fmt.Errorf("could not create client socket: %v", err)
+		return nil, fmt.Errorf("create client socket: %v", err)
 	}
 
 	peerAddr, err := ResolveAddr(address)
 	if err != nil {
-		return nil, fmt.Errorf("could not resolve peer address: %v", err)
+		return nil, fmt.Errorf("resolve peer address: %v", err)
 	}
 
 	synPacket := &Packet{
@@ -29,19 +29,19 @@ func Dial(address string) (io.ReadWriteCloser, error) {
 
 	err = s.Send(synPacket, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("could not send SYN packet: %v", err)
+		return nil, fmt.Errorf("send SYN packet: %v", err)
 	}
 
 	synAckPacket, err := s.Receive(10 * time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("could not receive SYN packet: %v", err)
+		return nil, fmt.Errorf("receive SYN packet: %v", err)
 	}
 
 	if synAckPacket.Type != SYNACK {
-		return nil, fmt.Errorf("could not synchronize with peer: incorrect SYN response type")
+		return nil, fmt.Errorf("synchronize with peer: incorrect SYN response type")
 	}
 	if synAckPacket.Sequence != synPacket.Sequence {
-		return nil, fmt.Errorf("could not synchronize with peer: incorrect SYN response sequence")
+		return nil, fmt.Errorf("synchronize with peer: incorrect SYN response sequence")
 	}
 
 	ackPacket := &Packet{
@@ -54,7 +54,7 @@ func Dial(address string) (io.ReadWriteCloser, error) {
 
 	err = s.Send(ackPacket, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("could not send ACK packet: %v", err)
+		return nil, fmt.Errorf("send ACK packet: %v", err)
 	}
 
 	// TODO make connection instance

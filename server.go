@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+
 	"github.com/g-harel/http/transport"
 )
 
@@ -33,7 +35,7 @@ func (s *Server) Listen(port string) error {
 			if conn != nil {
 				conn.Close()
 			}
-			s.throw(err)
+			s.throw(fmt.Errorf("accepting connection: %v", err))
 			continue
 		}
 
@@ -85,21 +87,21 @@ func handleConn(conn transport.Connection, s Server) {
 	defer func() {
 		err := res.Fprint(conn)
 		if err != nil {
-			s.throw(err)
+			s.throw(fmt.Errorf("write response: %v", err))
 		}
 		conn.Close()
 	}()
 
 	req, err := ReadRequest(conn)
 	if err != nil {
-		s.throw(err)
+		s.throw(fmt.Errorf("read request: %v", err))
 		res = s.errHandler(err)
 		return
 	}
 
 	res, err = s.handler(req)
 	if err != nil {
-		s.throw(err)
+		s.throw(fmt.Errorf("handle request: %v", err))
 		res = s.errHandler(err)
 	}
 }
