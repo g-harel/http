@@ -2,7 +2,6 @@ package transport
 
 import (
 	"fmt"
-	"math/rand"
 
 	"github.com/g-harel/http/transport/connection"
 	"github.com/g-harel/http/transport/tcp"
@@ -14,9 +13,6 @@ const (
 	TCP = "tcp"
 	UDP = "udp"
 )
-
-// EOF is a special sequence to signal the end of a message (very sketchy).
-var EOF = []byte{byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64()), byte(rand.Uint64())}
 
 // Listener represents a generic network listener.
 type Listener interface {

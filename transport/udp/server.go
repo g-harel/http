@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/g-harel/http/transport/connection"
@@ -18,6 +17,7 @@ type Server struct {
 	window  []*Packet
 	mailbox *bytes.Buffer
 	packet  *Packet
+	close   chan bool
 }
 
 func NewServer(socket *Socket) (*Server, error) {
@@ -25,12 +25,10 @@ func NewServer(socket *Socket) (*Server, error) {
 		socket:  socket,
 		window:  []*Packet{},
 		mailbox: &bytes.Buffer{},
+		close:   make(chan bool),
 	}
 
-	synPacket, err := socket.Receive(0)
-	if err != nil {
-		return nil, fmt.Errorf("receive SYN packet: %v", err)
-	}
+	synPacket := <-socket.Received
 
 	if synPacket.Type != SYN {
 		return nil, fmt.Errorf("synchronize with peer: incorrect SYN type")
@@ -44,22 +42,19 @@ func NewServer(socket *Socket) (*Server, error) {
 		Payload:     []byte{},
 	}
 
-	err = socket.Send(synAckPacket, Timeout)
+	err := socket.Send(synAckPacket, Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("send SYNACK packet: %v", err)
 	}
 
 	go func() {
 		for {
-			p, err := socket.Receive(0)
-			if err != nil {
-				if strings.Index(err.Error(), "i/o timeout") == -1 {
-					log.Printf("%#v dropped: %v", p, err)
-				}
-				continue
+			select {
+			case p := <-socket.Received:
+				s.window = append(s.window, p)
+			case <-s.close:
+				return
 			}
-
-			s.window = append(s.window, p)
 		}
 	}()
 
@@ -130,5 +125,7 @@ func (s *Server) Commit() error {
 }
 
 func (s *Server) Close() error {
+	log.Println("Server.Close()")
+	s.close <- true
 	return nil
 }

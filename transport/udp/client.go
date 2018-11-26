@@ -33,9 +33,12 @@ func NewClient(socket *Socket, packet *Packet) (*Client, error) {
 		return nil, fmt.Errorf("send SYN packet: %v", err)
 	}
 
-	synAckPacket, err := socket.Receive(Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("receive SYN packet: %v", err)
+	var synAckPacket *Packet
+	select {
+	case p := <-socket.Received:
+		synAckPacket = p
+	case <-time.After(Timeout):
+		return nil, fmt.Errorf("wait for SYNACK: timeout")
 	}
 
 	if synAckPacket.Type != SYNACK {
@@ -98,9 +101,12 @@ func (c *Client) Commit() error {
 		return fmt.Errorf("send packet: %v", err)
 	}
 
-	ackPacket, err := c.socket.Receive(Timeout)
-	if err != nil {
-		return fmt.Errorf("wait for ack packet: %v", err)
+	var ackPacket *Packet
+	select {
+	case p := <-c.socket.Received:
+		ackPacket = p
+	case <-time.After(Timeout):
+		return fmt.Errorf("wait for ACK: timeout")
 	}
 
 	if ackPacket.Type != ACK {

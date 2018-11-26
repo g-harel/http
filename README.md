@@ -3,6 +3,7 @@
 <!--
 
 TODO
+- udp retry
 - add timeouts for both client and server implementations
 - add worker pool to handle requests instead of being sequential
 

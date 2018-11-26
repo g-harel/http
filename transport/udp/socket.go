@@ -25,6 +25,7 @@ func ResolveAddr(address string) (*net.UDPAddr, error) {
 
 type Socket struct {
 	Transport net.PacketConn
+	Received  chan *Packet
 }
 
 func NewSocket(address string) (*Socket, error) {
@@ -38,7 +39,33 @@ func NewSocket(address string) (*Socket, error) {
 		return nil, fmt.Errorf("create raw packet connection: %s", err)
 	}
 
-	return &Socket{conn}, nil
+	s := &Socket{
+		Transport: conn,
+		Received:  make(chan *Packet),
+	}
+
+	go func() {
+		buffer := make([]byte, MaxPacketSize)
+		for {
+			n, _, err := s.Transport.ReadFrom(buffer)
+			if err != nil {
+				log.Printf("error: read packet: %v", err)
+				continue
+			}
+
+			p, err := (&Packet{}).Parse(buffer[:n])
+			if err != nil {
+				log.Printf("parse packet: %v", err)
+				continue
+			}
+
+			log.Printf("Socket.Receive(%v, %v)", p.Type, p.Sequence)
+
+			s.Received <- p
+		}
+	}()
+
+	return s, nil
 }
 
 func (s *Socket) Send(p *Packet, timeout time.Duration) error {
@@ -61,33 +88,4 @@ func (s *Socket) Send(p *Packet, timeout time.Duration) error {
 	log.Printf("Socket.Send(%v, %v)", p.Type, p.Sequence)
 
 	return nil
-}
-
-func (s *Socket) Receive(timeout time.Duration) (*Packet, error) {
-	b := make([]byte, MaxPacketSize)
-
-	// No deadline if timeout is zero.
-	var deadline time.Time
-	if timeout != 0 {
-		deadline = time.Now().Add(timeout)
-	}
-
-	err := s.Transport.SetReadDeadline(deadline)
-	if err != nil {
-		return nil, fmt.Errorf("set timeout: %v", err)
-	}
-
-	n, _, err := s.Transport.ReadFrom(b)
-	if err != nil {
-		return nil, fmt.Errorf("read packet: %v", err)
-	}
-
-	p, err := (&Packet{}).Parse(b[:n])
-	if err != nil {
-		return nil, fmt.Errorf("parse packet: %v", err)
-	}
-
-	log.Printf("Socket.Receive(%v, %v)", p.Type, p.Sequence)
-
-	return p, nil
 }

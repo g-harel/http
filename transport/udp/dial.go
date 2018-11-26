@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"time"
 
 	"github.com/g-harel/http/transport/connection"
 )
@@ -26,7 +27,7 @@ func Dial(address string) (connection.Connection, error) {
 
 	synPacket := &Packet{
 		Type:        SYN,
-		Sequence:    rand.Uint32() % 128,
+		Sequence:    rand.New(rand.NewSource(time.Now().UnixNano())).Uint32() % 32,
 		PeerAddress: binary.BigEndian.Uint32(peerAddr.IP.To4()),
 		PeerPort:    uint16(peerAddr.Port),
 		Payload:     []byte{},
