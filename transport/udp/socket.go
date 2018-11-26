@@ -9,6 +9,7 @@ import (
 )
 
 const Timeout = 2 * time.Second
+const Poll = 100 * time.Millisecond
 
 func ResolveAddr(address string) (*net.UDPAddr, error) {
 	addr, err := net.ResolveUDPAddr("udp4", address)

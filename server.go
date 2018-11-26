@@ -2,7 +2,6 @@ package http
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/g-harel/http/transport"
 	"github.com/g-harel/http/transport/connection"
@@ -107,7 +106,6 @@ func handleConn(conn connection.Connection, s Server) {
 		return
 	}
 
-	log.Printf("handl(req)\n")
 	res, err = s.handler(req)
 	if err != nil {
 		s.throw(fmt.Errorf("handle request: %v", err))

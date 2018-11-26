@@ -8,63 +8,37 @@ import (
 )
 
 func Listen(port string) (*Listener, error) {
-	log.SetPrefix("     [SERVER]          ")
+	log.SetPrefix("[SERVER]          ")
 	log.SetFlags(0)
-	log.Printf("Listn(%v)\n", port)
+	log.Printf("Listen(%v)\n", port)
 
 	s, err := NewSocket(port)
 	if err != nil {
 		return nil, fmt.Errorf("create sender socket: %v", err)
 	}
-	return &Listener{s}, nil
+	return &Listener{
+		socket: s,
+	}, nil
 }
 
 type Listener struct {
 	socket *Socket
+	server *Server
 }
 
 func (ln *Listener) Accept() (connection.Connection, error) {
-	log.Printf("Accept()\n")
+	log.Printf("Listener.Accept()\n")
 
-	synPacket, err := ln.socket.Receive(0)
+	s, err := NewServer(ln.socket)
 	if err != nil {
-		return nil, fmt.Errorf("receive SYN packet: %v", err)
+		return nil, fmt.Errorf("create server: %v", err)
 	}
 
-	if synPacket.Type != SYN {
-		return nil, fmt.Errorf("synchronize with peer: incorrect SYN type")
-	}
+	log.Println("connection established")
 
-	synAckPacket := &Packet{
-		Type:        SYNACK,
-		Sequence:    synPacket.Sequence,
-		PeerAddress: synPacket.PeerAddress,
-		PeerPort:    synPacket.PeerPort,
-		Payload:     []byte{},
-	}
+	ln.server = s
 
-	err = ln.socket.Send(synAckPacket, Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("send SYNACK packet: %v", err)
-	}
-
-	window := NewWindow(ln.socket, synAckPacket.Sequence)
-
-	ackPacket, err := window.Read(Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("receive ACK packet: %v", err)
-	}
-
-	if ackPacket.Type != ACK {
-		return nil, fmt.Errorf("synchronize with peer: incorrect ACK type")
-	}
-	if ackPacket.Sequence != synPacket.Sequence {
-		return nil, fmt.Errorf("synchronize with peer: incorrect ACK response sequence")
-	}
-
-	log.Printf("connection established\n")
-
-	return NewConn(ln.socket, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort, window), nil
+	return s, nil
 }
 
 func (ln *Listener) Close() error {

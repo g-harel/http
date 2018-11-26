@@ -14,7 +14,7 @@ export ROUTER_PORT="3004"
 
 if [[ "$TRANSPORT_PROTOCOL" == "udp" ]]; then
     rm -f ./router.log
-    ./test/router --port=$ROUTER_PORT --drop-rate=0.0 --max-delay=10ms --seed=$RANDOM &
+    ./test/router --port=$ROUTER_PORT --drop-rate=0.0 --max-delay=123ms --seed=$RANDOM &>/dev/null &
 elif [[ "$TRANSPORT_PROTOCOL" != "tcp" ]]; then
     echo "Transport protocol not specified (tcp, udp)"
     exit 1

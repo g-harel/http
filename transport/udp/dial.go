@@ -10,7 +10,7 @@ import (
 )
 
 func Dial(address string) (connection.Connection, error) {
-	log.SetPrefix("     [CLIENT] ")
+	log.SetPrefix("[CLIENT] ")
 	log.SetFlags(0)
 	log.Printf("Dial(%v)\n", address)
 
@@ -32,37 +32,12 @@ func Dial(address string) (connection.Connection, error) {
 		Payload:     []byte{},
 	}
 
-	err = s.Send(synPacket, Timeout)
+	client, err := NewClient(s, synPacket)
 	if err != nil {
-		return nil, fmt.Errorf("send SYN packet: %v", err)
+		return nil, fmt.Errorf("create client: %v", err)
 	}
 
-	synAckPacket, err := s.Receive(Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("receive SYN packet: %v", err)
-	}
+	log.Println("connection established")
 
-	if synAckPacket.Type != SYNACK {
-		return nil, fmt.Errorf("synchronize with peer: incorrect SYN response type")
-	}
-	if synAckPacket.Sequence != synPacket.Sequence {
-		return nil, fmt.Errorf("synchronize with peer: incorrect SYN response sequence")
-	}
-
-	ackPacket := &Packet{
-		Type:        ACK,
-		Sequence:    synPacket.Sequence,
-		PeerAddress: synPacket.PeerAddress,
-		PeerPort:    synPacket.PeerPort,
-		Payload:     []byte{},
-	}
-
-	err = s.Send(ackPacket, Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("send ACK packet: %v", err)
-	}
-
-	log.Printf("connection established\n")
-
-	return NewConn(s, ackPacket.Sequence, ackPacket.PeerAddress, ackPacket.PeerPort, NewWindow(s, ackPacket.Sequence)), nil
+	return client, nil
 }
