@@ -5,11 +5,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/g-harel/http/transport/connection"
 )
 
 // Request represents an HTTP request to be sent.
@@ -23,7 +22,7 @@ type Request struct {
 	Headers  *Headers
 	Body     io.Reader
 
-	conn connection.Connection
+	conn net.Conn
 }
 
 // Close closes the request's connection.

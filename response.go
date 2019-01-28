@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 	"strings"
-
-	"github.com/g-harel/http/transport/connection"
 )
 
 // Response represents a received HTTP response.
@@ -18,7 +17,7 @@ type Response struct {
 	Headers    *Headers
 	Body       io.Reader
 
-	conn connection.Connection
+	conn net.Conn
 }
 
 // NewResponse creates a response for the given status and message.

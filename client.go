@@ -3,8 +3,7 @@ package http
 import (
 	"fmt"
 	"io"
-
-	"github.com/g-harel/http/transport"
+	"net"
 )
 
 // Client is used to configure and send http requests.
@@ -24,7 +23,7 @@ func (c *Client) Send(req *Request) (*Response, error) {
 	if port == "" {
 		port = "80"
 	}
-	conn, err := transport.Dial(transportProtocol, fmt.Sprintf("%v:%v", req.Hostname, port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", req.Hostname, port))
 	if err != nil {
 		return nil, fmt.Errorf("connect to host: %v", err)
 	}
@@ -36,11 +35,6 @@ func (c *Client) Send(req *Request) (*Response, error) {
 	err = req.Fprint(w)
 	if err != nil {
 		return nil, fmt.Errorf("write request: %v", err)
-	}
-
-	err = conn.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("commit request: %v", err)
 	}
 
 	// Read and parse response from connection.
